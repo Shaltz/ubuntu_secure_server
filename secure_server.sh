@@ -71,7 +71,7 @@ read -p " Press ENTER to continue  "
 ####
 #	VARIABLES
 #####
-PUBLIC_IP=$( dig +short myip.opendns.org @resolver1.opendns.com )
+PUBLIC_IP=$( dig +short myip.opendns.com @resolver1.opendns.com )
 
 echo "My IP :: $PUBLIC_IP"
 
@@ -91,9 +91,22 @@ echo "My IP :: $PUBLIC_IP"
 ### BASE SYSTEM
 #
 
-# update the system
-
 # configure timezone
+sudo dpkg-reconfigure tzdata
+
+
+echo ""
+echo ""
+echo " From now on, the script is fully automatic and "
+echo " doesn't need inputs from you anymore, "
+echo " come back in a few minutes... "
+echo ""
+echo ""
+
+
+
+# update the system
+sudo apt update && sudo apt -y full-upgrade
 
 # tweak auto-update for security patches to be tighten
 
@@ -156,3 +169,8 @@ echo "My IP :: $PUBLIC_IP"
 # Delete default user
 
 # reboot
+
+echo ""
+echo "C'est fini !"
+echo ""
+
