@@ -53,23 +53,23 @@ SYSTEM_DEFAULT_USER="ubuntu"
 
 echo ""
 echo ""
-echo ""
+echo " $( tput setaf 9 )"
 echo " Make sure the files in conf_files are "
 echo " setup the way you want to. If you're not careful "
 echo " you may end up locked out from this server. "
-echo ""
+echo " $( tput sgr0 )"
 echo " According to the settings you have specified, "
 echo " you need to edit the following files :"
 echo ""
 echo " [List of files] "
 echo ""
 echo ""
-echo ""
+echo "$(tput setaf 11)"
 echo " Don't leave yet, you need to configure some things "
 echo " before the script can carry continue on its own "
+echo "$( tput sgr0 )"
 echo ""
-echo ""
-read -p " Press ENTER to continue, or CTRL+C to cancel... "
+read -p " $(tput setaf 1)Press ENTER to continue, or CTRL+C to cancel...$(tput sgr0) "
 
 
 
@@ -101,14 +101,13 @@ sudo dpkg-reconfigure tzdata
 
 
 echo ""
-echo ""
+echo "$( tput setaf 10 )"
 echo " From now on, the script is fully automatic and "
 echo " doesn't need inputs from you anymore, "
 echo " come back in a few minutes... "
+echo "$( tput sgr0 )"
 echo ""
-echo ""
-read -p " Press ENTER to continue... "
-
+read -p " $(tput setaf 1)Press ENTER to continue, or CTRL+C to cancel...$(tput sgr0) "
 
 # update the system
 sudo apt update && sudo apt -y full-upgrade
