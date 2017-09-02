@@ -56,15 +56,20 @@ echo ""
 echo ""
 echo " Make sure the files in conf_files are "
 echo " setup the way you want to. If you're not careful "
-echo " you may end up locked out from this server. According "
-echo " to the settings you have specified, you need to edit the"
-echo " following files :"
+echo " you may end up locked out from this server. "
+echo ""
+echo " According to the settings you have specified, "
+echo " you need to edit the following files :"
 echo ""
 echo " [List of files] "
 echo ""
 echo ""
 echo ""
-read -p " Press ENTER to continue  "
+echo " Don't leave yet, you need to configure some things "
+echo " before the script can carry continue on its own "
+echo ""
+echo ""
+read -p " Press ENTER to continue, or CTRL+C to cancel... "
 
 
 
@@ -102,7 +107,7 @@ echo " doesn't need inputs from you anymore, "
 echo " come back in a few minutes... "
 echo ""
 echo ""
-
+read -p " Press ENTER to continue... "
 
 
 # update the system
