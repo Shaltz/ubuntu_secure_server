@@ -116,6 +116,7 @@ SSH_CONFIG_FILE=./config_files/sshd_config.config_file
 AUTHORIZED_KEYS_CONFIG_FILE=./config_files/authorized_keys.config_file
 SYSCTL_CONFIG_FILE=./config_files/sysctl.conf.config_file
 UFW_CONFIG_FILE=./config_files/ufw.config_file
+FAIL2BAN_CONFIG_FILE=./config_files/jail.conf.config_file
 
 ####
 #	TESTS
@@ -166,6 +167,13 @@ else
 fi
 
 
+# sysctl file
+if [[ ! -f ${FAIL2BAN_CONFIG_FILE} ]]
+then
+        echo "FAIL2BAN PAS LA !!"
+else
+        echo "FAIL2BAN LELA !"
+fi
 
 
 #####
@@ -199,7 +207,7 @@ timedatectl set-timezone ${TZ_TO_USE}
 ## AUTO-UPDATE
 #
 # Makes sure that the system stays up to date
-sudo apt install unattended-upgrades
+sudo apt install -y unattended-upgrades
 
 # setup the system to stay up to date      
 cat /etc/apt/apt.conf.d/10periodic | grep -i "APT::Periodic::Unattended-Upgrade" > /dev/null 2>&1
@@ -251,7 +259,11 @@ cat ${AUTHORIZED_KEYS_CONFIG_FILE} >> /home/${NEW_USER_NAME}/.ssh/authorized_key
 
 # Install / Configure fail2ban
 
-
+if [ "${ENABLE_FAIL2BAN}" == true ]
+then
+	apt install -y fail2ban
+	
+fi
 
 
 #
@@ -262,7 +274,7 @@ cat ${AUTHORIZED_KEYS_CONFIG_FILE} >> /home/${NEW_USER_NAME}/.ssh/authorized_key
 if [ ! -x $( command -v ufw ) ]
 then
         # if not, install it
-        apt install ufw
+        apt install -y ufw
 fi
 
 # Disable ipv6
@@ -292,8 +304,6 @@ echo "y" | ufw enable
 #
 ### CLEANING UP
 #
-
-# Switch to the newly created user
 
 # Delete default user
 
