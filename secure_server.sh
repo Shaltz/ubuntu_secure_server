@@ -19,6 +19,10 @@ TZ_TO_USE="Europe/Paris"
 # DONT LEAVE THE DEFAULT ONE !!!
 ROOT_PASSWORD="changeme"
 
+# The ssh port to use
+# Its HIGHLY RECOMMENDED to change the default port
+SSH_PORT=22
+
 # Unless you really need ipv6 support,
 # you should consider disabling it
 ENABLE_IPV6=false
@@ -124,14 +128,27 @@ FAIL2BAN_CONFIG_FILE=./config_files/jail.conf.config_file
 
 # does the new_user_name already exists
 grep -q "${NEW_USER_NAME}" /etc/passwd
-if [ $? -eq 0 ] 
+if [[ $? -eq 0 && "${CREATE_NEW_USER}" == true ]]
 then	
 	echo ""
 	echo "The user ${NEW_USER_NAME} does already exist."
-  	echo "Edit this script and chose another username"
+  	echo "Edit this script and choose another username"
 	echo ""
 exit 1
 fi
+
+# does the default_user_name exists
+grep -q "${DEFAULT_USER_NAME}" /etc/passwd
+if [[ $? -ne 0 && "${REMOVE_DEFAULT_USER}" == true ]]
+then
+        echo ""
+        echo " The default user "${DEFAULT_USER_NAME}" doesn't exist on this system."
+        echo " Edit this script and provide the proper default user"
+	echo " or set REMOVE_DEFAULT_USER to false"
+        echo ""
+exit 1
+fi
+
 
 # ssh config file
 if [[ ! -f ${SSH_CONFIG_FILE} && ! -f ${AUTHORIZED_KEYS_CONFIG_FILE} ]]
@@ -141,20 +158,20 @@ else
 	echo "SSH LELA !"
 	
 	# check to make sure the port has been changed
-	cat ${SSH_CONFIG_FILE} | grep -i "Port 22" > /dev/null 2>&1
+#	cat ${SSH_CONFIG_FILE} | grep -i "Port 22" > /dev/null 2>&1
 	# if the default port hasn't been changed
-	if [ $? -eq 0 ]
-	then
-		clear
-		echo ""
-		echo " The SSH port is set to the default $(tput setaf 11)Port 22$(tput sgr0)"
-		echo ""
-		echo "$(tput setaf 9) it is HIGHLY RECOMMENDED to change the ssh port$(tput sgr0) "
-		echo ""
-		echo " Set it to some port > 1024 and < 65535"
-		echo ""
-		read -p " $(tput setaf 1)Press ENTER to continue, or CTRL+C to cancel...$(tput sgr0) "
-	fi
+#	if [ $? -eq 0 ]
+#	then
+#		clear
+#		echo ""
+#		echo " The SSH port is set to the default $(tput setaf 11)Port 22$(tput sgr0)"
+#		echo ""
+#		echo "$(tput setaf 9) it is HIGHLY RECOMMENDED to change the ssh port$(tput sgr0) "
+#		echo ""
+#		echo " Set it to some port > 1024 and < 65535"
+#		echo ""
+#		read -p " $(tput setaf 1)Press ENTER to continue, or CTRL+C to cancel...$(tput sgr0) "
+#	fi
 fi
 
 
@@ -167,7 +184,7 @@ else
 fi
 
 
-# sysctl file
+# fail2ban file
 if [[ ! -f ${FAIL2BAN_CONFIG_FILE} ]]
 then
         echo "FAIL2BAN PAS LA !!"
@@ -251,17 +268,24 @@ sudo service sshd restart
 # Create a ssh key for the new user
 sudo -u ${NEW_USER_NAME} -- ssh-keygen -t rsa -N "" -f /home/ubuntu/.ssh/id_rsa
 
-chmod 400 /home/${NEW_USER_NAME}/.ssh/authorized_keys
-chown ${NEW_USER_NAME}:${NEW_USER_NAME} /home/${NEW_USER_NAME} -R
-
 # copy the authorized keys from config_files/authorized_keys.config_file to  ~/.ssh/authorized_keys 
 cat ${AUTHORIZED_KEYS_CONFIG_FILE} >> /home/${NEW_USER_NAME}/.ssh/authorized_keys
+
+# Change the permission on the authorized_keys file
+chmod 400 /home/${NEW_USER_NAME}/.ssh/authorized_keys
+
+# change the owner of all files/folders present in the new user home folder
+chown ${NEW_USER_NAME}:${NEW_USER_NAME} /home/${NEW_USER_NAME} -R
+
 
 # Install / Configure fail2ban
 
 if [ "${ENABLE_FAIL2BAN}" == true ]
 then
 	apt install -y fail2ban
+
+# replace variables in template file example
+# i=32 word=foo envsubst < template.txt
 	
 fi
 
