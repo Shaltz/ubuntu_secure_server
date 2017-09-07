@@ -17,6 +17,7 @@ TZ_TO_USE="Europe/Paris"
 
 # The new root password to use
 # DONT LEAVE THE DEFAULT ONE !!!
+CHANGE_ROOT_PASSWD=false
 ROOT_PASSWORD="changeme"
 
 # The ssh port to use
@@ -29,29 +30,29 @@ ENABLE_IPV6=false
 
 # You should enable email reporting if you want to know
 # what happens on your server
-ENABLE_MAIL_REPORTING=true
+ENABLE_MAIL_REPORTING=false
 # Email address for reporting
 DEST_EMAIL="john.doe@gmail.com"
 
 # Extra layer of security that bans IPs 
 # if too many auth failed attempts
-ENABLE_FAIL2BAN=true
+ENABLE_FAIL2BAN=false
 
 # Rotate & send logs to an email address
-ENABLE_LOGWATCH=true
+ENABLE_LOGWATCH=false
 
 # Monitoring utility
 # go to htp://cockpit-project.org
 # for more info
-ENABLE_COCKPIT=true
+ENABLE_COCKPIT=false
 
 # Should we create a new user ? [RECOMMENDED]
-CREATE_NEW_USER=true
+CREATE_NEW_USER=false
 NEW_USER_NAME="john"
 NEW_USER_PASSWORD="password"
 
 # Should we delete the default user ? [RECOMMENDED]
-REMOVE_DEFAULT_USER=true
+REMOVE_DEFAULT_USER=false
 # the system's default username, "ubuntu" for Ubuntu servers, "pi" for Raspberry Pis ...
 # This user will be deleted at the end of the process if REMOVE_DEFAULT_USER=true
 DEFAULT_USER_NAME="ubuntu"
@@ -101,21 +102,17 @@ echo ""
 echo " [List of files] "
 echo ""
 echo ""
-#echo "$(tput setaf 11)"
-#echo " Don't leave yet, you need to configure some things "
-#echo " before the script can carry continue on its own "
-#echo "$( tput sgr0 )"
 echo ""
 read -p " $(tput setaf 1)Press ENTER to continue, or CTRL+C to cancel...$(tput sgr0) "
 
 ####
 #	VARIABLES
 #####
+
+LOG_FILE=./secure_server_install.log
+BKP_DIR=./original_files/
+
 PUBLIC_IP=$( dig +short myip.opendns.com @resolver1.opendns.com )
-HOSTNAME=$( hostname )
-
-echo "My IP :: $PUBLIC_IP"
-
 SSH_CONFIG_FILE=./config_files/sshd_config.config_file
 AUTHORIZED_KEYS_CONFIG_FILE=./config_files/authorized_keys.config_file
 SYSCTL_CONFIG_FILE=./config_files/sysctl.conf.config_file
@@ -144,7 +141,7 @@ then
         echo ""
         echo " The default user "${DEFAULT_USER_NAME}" doesn't exist on this system."
         echo " Edit this script and provide the proper default user"
-	echo " or set REMOVE_DEFAULT_USER to false"
+	    echo " or set REMOVE_DEFAULT_USER to false"
         echo ""
 exit 1
 fi
@@ -156,22 +153,6 @@ then
 	echo "SSH PAS LA !!"
 else
 	echo "SSH LELA !"
-	
-	# check to make sure the port has been changed
-#	cat ${SSH_CONFIG_FILE} | grep -i "Port 22" > /dev/null 2>&1
-	# if the default port hasn't been changed
-#	if [ $? -eq 0 ]
-#	then
-#		clear
-#		echo ""
-#		echo " The SSH port is set to the default $(tput setaf 11)Port 22$(tput sgr0)"
-#		echo ""
-#		echo "$(tput setaf 9) it is HIGHLY RECOMMENDED to change the ssh port$(tput sgr0) "
-#		echo ""
-#		echo " Set it to some port > 1024 and < 65535"
-#		echo ""
-#		read -p " $(tput setaf 1)Press ENTER to continue, or CTRL+C to cancel...$(tput sgr0) "
-#	fi
 fi
 
 
@@ -197,6 +178,37 @@ fi
 #	SCRIPT
 #####
 
+#
+### PRE CONFIGURATION
+#
+
+# create bkp folder if it doesn't already exist
+if [ ! -d ${BKP_DIR} ]
+then
+    echo "Creating the backup folder for the original files that are going to be replaced during this process" >> ${LOG_FILE}
+    mkdir ${BKP_DIR}
+    echo "The Folder 'original_files/' has been created successfully" >> ${LOG_FILE}
+fi
+
+# create .log file
+if [ ! -f ${LOG_FILE} ]
+then
+    touch ${LOG_FILE}
+else
+    clear
+    echo ""
+    echo " $(tput setaf 9) WARNING !!! $(tput sgr0) "
+    echo ""
+    echo " It seems that this script has already been ran, "
+    echo " meaning this server has already been secured... "
+    echo ""
+    echo " Are you sure you want to run it once again ? "
+    echo ""
+    read -p " $(tput setaf 1)Press ENTER to continue, or CTRL+C to cancel...$(tput sgr0) "
+fi
+
+
+
 
 
 #
@@ -204,42 +216,51 @@ fi
 #
 
 # configure timezone
-#sudo dpkg-reconfigure tzdata
-#echo ""
-#echo "$( tput setaf 10 )"
-#echo " From now on, the script is fully automatic and "
-#echo " doesn't need inputs from you anymore, "
-#echo " come back in a few minutes... "
-#echo "$( tput sgr0 )"
-#echo ""
-#read -p " $(tput setaf 1)Press ENTER to continue, or CTRL+C to cancel...$(tput sgr0) "
+echo "Ready to update the time zone with :: ${TZ_TO_USE}" >> ${LOG_FILE}
+timedatectl set-timezone ${TZ_TO_USE}
+echo "Time zone updated" >> ${LOG_FILE}
+
+echo "" > ${LOG_FILE}
+echo "" >> ${LOG_FILE}
+echo " ################################## " >> ${LOG_FILE}
+echo " ## NEW INSTALLATION IN PROGRESS ## " >> ${LOG_FILE}
+echo " ################################## " >> ${LOG_FILE}
+echo "" >> ${LOG_FILE}
+echo " Started the $(date) " >> ${LOG_FILE}
+echo "" >> ${LOG_FILE}
+echo " ----------------------------------- " >> ${LOG_FILE}
+echo "" >> ${LOG_FILE}
+
 
 # update the system
+
 apt update && sudo apt -y full-upgrade
-
-# configure timezone
-timedatectl set-timezone ${TZ_TO_USE}
-
+echo "System updated and fully upgraded" >> ${LOG_FILE}
 
 ## AUTO-UPDATE
 #
 # Makes sure that the system stays up to date
 sudo apt install -y unattended-upgrades
+echo "unattended-upgrades packages installed" >> ${LOG_FILE}
 
-# setup the system to stay up to date      
+# setup the system to stay up to date
 cat /etc/apt/apt.conf.d/10periodic | grep -i "APT::Periodic::Unattended-Upgrade" > /dev/null 2>&1
 
 # Check if the config file hasn't been updated yet, 
 # if it hasn't been, update it
 if [ ! $? -eq 0 ]
 then
+    cp /etc/apt/apt.conf.d/10periodic ${BKP_DIR}
 	echo "APT::Periodic::Unattended-Upgrade \"1\";" >> /etc/apt/apt.conf.d/10periodic
+    echo "The unattended-upgrades package is installed and automatic security updates are activated" >> ${LOG_FILE}
 fi
 
 # disable ipv6
 if [ ${ENABLE_IPV6} == "false"  ]
 then
+    cp /etc/sysctl.conf ${BKP_DIR}
 	cat ${SYSCTL_CONFIG_FILE} > /etc/sysctl.conf
+    echo "IPV6 has been deactivated in the kernel" >> ${LOG_FILE}
 fi
 
 #
@@ -247,42 +268,63 @@ fi
 #
 
 # Change root password
-echo "root:${ROOT_PASSWORD}"|chpasswd
+if [ ${CHANGE_ROOT_PASSWD} == "true" ]
+then
+    echo "root:${ROOT_PASSWORD}"|chpasswd
+    echo "ROOT password updated" >> ${LOG_FILE}
+fi
 
 # Create a new user
-useradd -m -g sudo -s /bin/bash ${NEW_USER_NAME}
-echo "${NEW_USER_NAME}:${NEW_USER_PASSWORD}"|chpasswd
-
+if [ ${CREATE_NEW_USER} == "true" ]
+then
+    useradd -m -g sudo -s /bin/bash ${NEW_USER_NAME}
+    echo "${NEW_USER_NAME}:${NEW_USER_PASSWORD}"|chpasswd
+    echo "The user '${NEW_USER_NAME}' has been created" >> ${LOG_FILE}
+fi
 
 #
 ### SSH / FAIL2BAN
 #
 
 # Configure ssh
+cp /etc/ssh/sshd_config ${BKP_DIR}
 cat ${SSH_CONFIG_FILE} > /etc/ssh/sshd_config
+echo "The SSH service has been configured" >> ${LOG_FILE}
 # restart ssh
 sudo service sshd restart
+echo "The SSH service has been restarted" >> ${LOG_FILE}
 
 ## Enable public key authentication
 #
 # Create a ssh key for the new user
-sudo -u ${NEW_USER_NAME} -- ssh-keygen -t rsa -N "" -f /home/ubuntu/.ssh/id_rsa
+# sudo has to be kept as it's the command itself
+sudo -u ${NEW_USER_NAME} -- ssh-keygen -t rsa -N "" -f /home/${NEW_USER_NAME}/.ssh/id_rsa
+echo "The ssh key for ${NEW_USER_NAME} has been created and it's stored in '/home/${NEW_USER_NAME}/.ssh/id_rsa'" >> ${LOG_FILE}
 
-# copy the authorized keys from config_files/authorized_keys.config_file to  ~/.ssh/authorized_keys 
+# copy the authorized keys from config_files/authorized_keys.config_file to  ~/.ssh/authorized_keys
+cp /home/${NEW_USER_NAME}/.ssh/authorized_keys ${BKP_DIR}
 cat ${AUTHORIZED_KEYS_CONFIG_FILE} >> /home/${NEW_USER_NAME}/.ssh/authorized_keys
+echo "The '/home/${NEW_USER_NAME}/.ssh/authorized_keys' has been updated" >> ${LOG_FILE}
 
 # Change the permission on the authorized_keys file
 chmod 400 /home/${NEW_USER_NAME}/.ssh/authorized_keys
+echo "The '/home/${NEW_USER_NAME}/.ssh/authorized_keys' rights has been updated to 400" >> ${LOG_FILE}
 
 # change the owner of all files/folders present in the new user home folder
 chown ${NEW_USER_NAME}:${NEW_USER_NAME} /home/${NEW_USER_NAME} -R
+echo "The owner of all files/folders in /home/${NEW_USER_NAME} has been set to '${NEW_USER_NAME}'" >> ${LOG_FILE}
 
 
 # Install / Configure fail2ban
 
 if [ "${ENABLE_FAIL2BAN}" == true ]
 then
+    echo "" >> ${LOG_FILE}
+    echo " ------------ " >> ${LOG_FILE}
+    echo "" >> ${LOG_FILE}
+    echo "fail2ban is not installed, installing it..." >> ${LOG_FILE}
 	apt install -y fail2ban
+    echo "fail2ban installed" >> ${LOG_FILE}
 
 # replace variables in template file example
 # i=32 word=foo envsubst < template.txt
@@ -298,18 +340,38 @@ fi
 if [ ! -x $( command -v ufw ) ]
 then
         # if not, install it
-        apt install -y ufw
+    echo "" >> ${LOG_FILE}
+    echo " ------------ " >> ${LOG_FILE}
+    echo "" >> ${LOG_FILE}
+    echo "ufw is not installed, installing it..." >> ${LOG_FILE}
+    apt install -y ufw
+    echo "ufw installed" >> ${LOG_FILE}
 fi
 
 # Disable ipv6
-cat ${UFW_CONFIG_FILE} > /etc/default/ufw
+if [ ${ENABLE_IPV6} == "false"  ]
+then
+    cp /etc/default/ufw ${BKP_DIR}
+    cat ${UFW_CONFIG_FILE} > /etc/default/ufw
+    echo "IPV6 has been disabled in ufw config files" >> ${LOG_FILE}
+fi
+
 
 # Allow SSH port
+echo "ufw :: allowing ssh" >> ${LOG_FILE}
 ufw allow ssh
 # Enable logging
+echo "ufw :: activating logging mechanism" >> ${LOG_FILE}
 ufw logging medium
 # start the firewall
+echo "ufw :: STARTING the service" >> ${LOG_FILE}
 echo "y" | ufw enable
+
+echo "" >> ${LOG_FILE}
+echo " ------------ " >> ${LOG_FILE}
+echo "" >> ${LOG_FILE}
+echo "ufw is started and it's status is ::" >> ${LOG_FILE}
+ufw status verbose >> ${LOG_FILE}
 
 
 #
@@ -326,7 +388,7 @@ echo "y" | ufw enable
 
 
 #
-### CLEANING UP
+### POST CONFIGURATION
 #
 
 # Delete default user
