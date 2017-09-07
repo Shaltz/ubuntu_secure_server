@@ -31,8 +31,14 @@ ENABLE_IPV6=false
 # You should enable email reporting if you want to know
 # what happens on your server
 ENABLE_MAIL_REPORTING=false
+
 # Email address for reporting
 DEST_EMAIL="john.doe@gmail.com"
+
+# This email will ONLY be used at the end of this script
+# to send a summary of all the actions as well as a resume of the
+# ssh port, root password, user name & user password used
+RECAP_EMAIL_END_OF_PROCESS="root@gmail.com"
 
 # Extra layer of security that bans IPs 
 # if too many auth failed attempts
@@ -53,8 +59,10 @@ NEW_USER_PASSWORD="password"
 
 # Should we delete the default user ? [RECOMMENDED]
 REMOVE_DEFAULT_USER=false
-# the system's default username, "ubuntu" for Ubuntu servers, "pi" for Raspberry Pis ...
-# This user will be deleted at the end of the process if REMOVE_DEFAULT_USER=true
+# the system's default username, "ubuntu" for Ubuntu servers,
+# "pi" for Raspberry Pis ...
+# This user will be deleted at the end of the process
+# only if REMOVE_DEFAULT_USER=true
 DEFAULT_USER_NAME="ubuntu"
 
 
@@ -118,6 +126,7 @@ AUTHORIZED_KEYS_CONFIG_FILE=./config_files/authorized_keys.config_file
 SYSCTL_CONFIG_FILE=./config_files/sysctl.conf.config_file
 UFW_CONFIG_FILE=./config_files/ufw.config_file
 FAIL2BAN_CONFIG_FILE=./config_files/jail.conf.config_file
+LOGWATCH_CONFIG_FILE=./config_files/logwatch.conf.config_file
 
 ####
 #	TESTS
@@ -258,10 +267,25 @@ fi
 # disable ipv6
 if [ ${ENABLE_IPV6} == "false"  ]
 then
-    cp /etc/sysctl.conf ${BKP_DIR}
-	cat ${SYSCTL_CONFIG_FILE} > /etc/sysctl.conf
-    echo "IPV6 has been deactivated in the kernel" >> ${LOG_FILE}
+    ipv6_config
+        #
+        # Disable IPv6 support
+        #
+        net.ipv6.conf.all.disable_ipv6 = 1
+        net.ipv6.conf.default.disable_ipv6 = 1
+        net.ipv6.conf.lo.disable_ipv6 = 1
+        #"
+#	cat ${SYSCTL_CONFIG_FILE} > /etc/sysctl.conf
+    echo "IPV6 will be DEACTIVATED in the kernel" >> ${LOG_FILE}
+else
+    ipv6_config=""
+    echo "IPV6 will be ACTIVATED in the kernel" >> ${LOG_FILE}
 fi
+
+cp /etc/sysctl.conf ${BKP_DIR}
+ipv6_config=${ipv6_config} envsubst < ${SYSCTL_CONFIG_FILE} > /etc/sysctl.conf
+
+
 
 #
 ### USERS
@@ -282,14 +306,26 @@ then
     echo "The user '${NEW_USER_NAME}' has been created" >> ${LOG_FILE}
 fi
 
+
+
 #
 ### SSH / FAIL2BAN
 #
 
 # Configure ssh
 cp /etc/ssh/sshd_config ${BKP_DIR}
-cat ${SSH_CONFIG_FILE} > /etc/ssh/sshd_config
-SSH_PORT=${SSH_PORT} NEW_USER_NAME=${NEW_USER_NAME} envsubst < ${SSH_CONFIG_FILE} > /etc/ssh/sshd_config
+
+# prepare the sshd_config file for cockpit
+if [ ${ENABLE_COCKPIT} == "true" ]
+then
+    sshPasswordAuthentication="PasswordAuthentication yes"
+else
+    sshPasswordAuthentication="PasswordAuthentication no"
+fi
+
+#cat ${SSH_CONFIG_FILE} > /etc/ssh/sshd_config
+SSH_PORT=${SSH_PORT} NEW_USER_NAME=${NEW_USER_NAME} sshPasswordAuthentication=${sshPasswordAuthentication} envsubst < ${SSH_CONFIG_FILE} > /etc/ssh/sshd_config
+
 echo "The SSH service has been configured" >> ${LOG_FILE}
 
 # restart ssh
@@ -319,7 +355,6 @@ echo "The owner of all files/folders in /home/${NEW_USER_NAME} has been set to '
 
 
 # Install / Configure fail2ban
-
 if [ "${ENABLE_FAIL2BAN}" == true ]
 then
     echo "" >> ${LOG_FILE}
@@ -327,7 +362,20 @@ then
     echo "" >> ${LOG_FILE}
     echo "fail2ban is not installed, installing it..." >> ${LOG_FILE}
 	apt install -y fail2ban
-    echo "fail2ban installed" >> ${LOG_FILE}
+
+	if [ ${ENABLE_MAIL_REPORTING} == "true" ]
+	then
+        email_dest="destemail = ${DEST_EMAIL}"
+        email_sender="sender = root@$(hostname)"
+        action="action = %(action_mwl)s"
+	else
+        email_dest="# destemail = root@localhost"
+        email_sender="# sender = root@localhost"
+        action="# action = %(action_mwl)s"
+	fi
+
+    email_dest=${email_dest} email_sender=${email_sender} action=${action} envsubst < ${FAIL2BAN_CONFIG_FILE} > /etc/fail2ban/jail.local
+    echo "fail2ban installed and configured" >> ${LOG_FILE}
 
 # replace variables in template file example
 # i=32 word=foo envsubst < template.txt
@@ -355,8 +403,13 @@ fi
 if [ ${ENABLE_IPV6} == "false"  ]
 then
     cp /etc/default/ufw ${BKP_DIR}
-    cat ${UFW_CONFIG_FILE} > /etc/default/ufw
-    echo "IPV6 has been disabled in ufw config files" >> ${LOG_FILE}
+#    cat ${UFW_CONFIG_FILE} > /etc/default/ufw
+    ENABLE_IPV6_UFW="no" envsubst < ${UFW_CONFIG_FILE} > /etc/default/ufw
+    echo "IPV6 has been disabled in the ufw config file" >> ${LOG_FILE}
+else
+    cp /etc/default/ufw ${BKP_DIR}
+    ENABLE_IPV6_UFW="yes" envsubst < ${UFW_CONFIG_FILE} > /etc/default/ufw
+    echo "IPV6 has been enabled in the ufw config file" >> ${LOG_FILE}
 fi
 
 
@@ -376,11 +429,13 @@ echo "" >> ${LOG_FILE}
 echo " ------------ " >> ${LOG_FILE}
 echo "" >> ${LOG_FILE}
 echo "ufw is started and it's status is ::" >> ${LOG_FILE}
-echo ""
+echo "" >> ${LOG_FILE}
+
 ufw status verbose >> ${LOG_FILE}
-echo ""
-echo " ------------ "
-echo ""
+
+echo "" >> ${LOG_FILE}
+echo " ------------ " >> ${LOG_FILE}
+echo "" >> ${LOG_FILE}
 
 
 #
@@ -388,12 +443,49 @@ echo ""
 #
 
 # Install sendmail
+if [ ${ENABLE_MAIL_REPORTING} == "true" ]
+then
+    echo "sendmail :: installing" >> ${LOG_FILE}
+    apt install sendmail
+    echo "sendmail :: installed" >> ${LOG_FILE}
+    echo "" >> ${LOG_FILE}
+    echo " ------------ " >> ${LOG_FILE}
+    echo "" >> ${LOG_FILE}
+    echo " To help out sendmail working properly, " >> ${LOG_FILE}
+    echo " you can edit your '/etc/hosts' file and " >> ${LOG_FILE}
+    echo " make sure the following line is present at the top of your file : " >> ${LOG_FILE}
+    echo " '127.0.0.1   $(hostname) localhost' " >> ${LOG_FILE}
+    echo "" >> ${LOG_FILE}
+    echo " ------------ " >> ${LOG_FILE}
+    echo "" >> ${LOG_FILE}
+fi
 
 # Install logwatch
+if [ ${ENABLE_LOGWATCH} == "true" ]
+then
+    sudo apt install logwatch
+    mkdir -p /var/cache/logwatch/
 
-# Configure fail2ban for mail reporting
+    if [[ ${ENABLE_MAIL_REPORTING} == "true" ]]
+    then
+        outputFormat="mail"
+    else
+        outputFormat="stdout"
+    fi
+
+     outputFormat=${outputFormat} mailTo="${DEST_EMAIL}" mailFrom="logwatch@$(hostname)" envsubst < ${LOGWATCH_CONFIG_FILE} > /etc/logwatch/conf/logwatch.conf
+
+fi
+
 
 # Install cockpit (for monitoring)
+if [ ${ENABLE_COCKPIT} == "true" ]
+then
+    add-apt-repository ppa:cockpit-project/cockpit
+    apt update
+    apt install -y cockpit
+    systemctl enable --now cockpit.socket
+fi
 
 
 #
@@ -401,6 +493,12 @@ echo ""
 #
 
 # Delete default user
+
+
+
+# send a recap email to the admin email address
+
+
 
 # reboot
 echo ""

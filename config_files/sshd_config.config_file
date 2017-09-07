@@ -6,7 +6,7 @@ Port ${SSH_PORT}
 
 # CHANGE THIS TO YES IF YOU WANT TO USE COCKPIT
 # Change to no to disable tunnelled clear text passwords
-PasswordAuthentication no
+${sshPasswordAuthentication}
 
 # Only allow the following users to connect via ssh
 AllowUsers ${NEW_USER_NAME}
