@@ -197,7 +197,7 @@ then
 else
     clear
     echo ""
-    echo " $(tput setaf 9) WARNING !!! $(tput sgr0) "
+    echo " $(tput setaf 3) WARNING !!! $(tput sgr0) "
     echo ""
     echo " It seems that this script has already been ran, "
     echo " meaning this server has already been secured... "
@@ -289,10 +289,13 @@ fi
 # Configure ssh
 cp /etc/ssh/sshd_config ${BKP_DIR}
 cat ${SSH_CONFIG_FILE} > /etc/ssh/sshd_config
+SSH_PORT=${SSH_PORT} NEW_USER_NAME=${NEW_USER_NAME} envsubst < ${SSH_CONFIG_FILE} > /etc/ssh/sshd_config
 echo "The SSH service has been configured" >> ${LOG_FILE}
+
 # restart ssh
 sudo service sshd restart
 echo "The SSH service has been restarted" >> ${LOG_FILE}
+
 
 ## Enable public key authentication
 #
@@ -360,9 +363,11 @@ fi
 # Allow SSH port
 echo "ufw :: allowing ssh" >> ${LOG_FILE}
 ufw allow ssh
+
 # Enable logging
 echo "ufw :: activating logging mechanism" >> ${LOG_FILE}
 ufw logging medium
+
 # start the firewall
 echo "ufw :: STARTING the service" >> ${LOG_FILE}
 echo "y" | ufw enable
@@ -371,7 +376,11 @@ echo "" >> ${LOG_FILE}
 echo " ------------ " >> ${LOG_FILE}
 echo "" >> ${LOG_FILE}
 echo "ufw is started and it's status is ::" >> ${LOG_FILE}
+echo ""
 ufw status verbose >> ${LOG_FILE}
+echo ""
+echo " ------------ "
+echo ""
 
 
 #
