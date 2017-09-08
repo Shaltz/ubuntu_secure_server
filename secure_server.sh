@@ -331,6 +331,7 @@ fi
 # ssh config file
 if [[ -f ${SSH_CONFIG_FILE} ]]
 then
+    #backup the original file
     cp /etc/ssh/sshd_config ${BKP_DIR}
 else
     handle_command_error 999 "${SSH_CONFIG_FILE} is not present, make sure you have all the files/folders needed by this script"
@@ -457,7 +458,9 @@ else
 #"
 fi
 
+#backup the original file
 cp /etc/sysctl.conf ${BKP_DIR}
+
 ipv6_config=${ipv6_config} envsubst < ${SYSCTL_CONFIG_FILE} > /etc/sysctl.conf
 handle_command_error $? "Couldn't update the file : /etc/sysctl.conf"
 
@@ -583,6 +586,9 @@ then
         action="# action = %(action_mwl)s"
 	fi
 
+    #backup the original file
+    cp /etc/fail2ban/jail.conf ${BKP_DIR}
+
     email_dest=${email_dest} email_sender=${email_sender} action=${action} envsubst < ${FAIL2BAN_CONFIG_FILE} > /etc/fail2ban/jail.local
     handle_command_error $? "Couldn't setup Fail2Ban"
 
@@ -611,14 +617,15 @@ then
 fi
 
 
+#backup the original file
+cp /etc/default/ufw ${BKP_DIR}
+
 # Disable ipv6
 if [ ${ENABLE_IPV6} == "false"  ]
 then
-    cp /etc/default/ufw ${BKP_DIR}
     ENABLE_IPV6_UFW="no" envsubst < ${UFW_CONFIG_FILE} > /etc/default/ufw
     handle_command_error $? "Couldn't disable iv6 support in ufw"
 else
-    cp /etc/default/ufw ${BKP_DIR}
     ENABLE_IPV6_UFW="yes" envsubst < ${UFW_CONFIG_FILE} > /etc/default/ufw
     handle_command_error $? "Couldn't enable iv6 support in ufw"
 fi
@@ -696,6 +703,9 @@ then
     else
         outputFormat="stdout"
     fi
+
+    #backup the original file
+    cp /etc/logwatch/conf/logwatch.conf ${BKP_DIR}
 
     outputFormat=${outputFormat} mailTo="${DEST_EMAIL}" mailFrom="logwatch@$(hostname)" envsubst < ${LOGWATCH_CONFIG_FILE} > /etc/logwatch/conf/logwatch.conf
     handle_command_error $? "Couldn't setup logwatch"
