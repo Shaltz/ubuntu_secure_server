@@ -361,12 +361,12 @@ apt install -y unattended-upgrades
 handle_command_error $? "Couldn't update the system"
 
 echo "unattended-upgrades packages installed" >> ${LOG_FILE}
-# setup the system to stay up to date
-#cat /etc/apt/apt.conf.d/10periodic | grep -i "APT::Periodic::Unattended-Upgrade" > /dev/null 2>&1
-#handle_command_error $? "Couldn't update the file :: /etc/apt/apt.conf.d/10periodic"
 
+# setup the system to stay up to date
 cp /etc/apt/apt.conf.d/10periodic ${BKP_DIR}
 echo "APT::Periodic::Unattended-Upgrade \"1\";" >> /etc/apt/apt.conf.d/10periodic
+handle_command_error $? "Couldn't update the file :: /etc/apt/apt.conf.d/10periodic"
+
 echo "The unattended-upgrades package is installed and automatic security updates are activated" >> ${LOG_FILE}
 
 
@@ -424,7 +424,7 @@ fi
 # Create a new user
 if [ ${CREATE_NEW_USER} == "true" ]
 then
-    useradd -m -g sudo -s /bin/bash ${NEW_USER_NAME}
+    useradd -m -g sudo ${NEW_USER_NAME} -s /bin/bash ${NEW_USER_NAME}
     echo "${NEW_USER_NAME}:${NEW_USER_PASSWORD}"|chpasswd
     handle_command_error $? "Couldn't create the new user : ${NEW_USER_NAME}"
 
