@@ -23,6 +23,7 @@ hostname = ${HOST_NAME}
 ssh port = ${SSH_PORT}
 
 timezone = ${TZ_TO_USE}
+time of install = ${INSTALL_DATE}.
 
 ----------------
 root password = ${ROOT_PASSWORD}
