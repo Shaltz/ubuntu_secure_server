@@ -5,7 +5,7 @@
 #
 #################################################
 #
-#	SCRIPT TO SECURE A DEBIAN / UBUNTU SERVER
+#   SCRIPT TO SECURE A DEBIAN / UBUNTU SERVER
 #   by pepinpin
 #   v1.0
 #
