@@ -167,14 +167,13 @@ TOP_PID=$$
 LOG_FILE=./secure_server_install.log
 BKP_DIR=./original_files/
 
-PUBLIC_IP=$( dig +short myip.opendns.com @resolver1.opendns.com )
-
 SSH_CONFIG_FILE=./config_files/sshd_config.config_file
 AUTHORIZED_KEYS_CONFIG_FILE=./config_files/authorized_keys.config_file
 SYSCTL_CONFIG_FILE=./config_files/sysctl.conf.config_file
 UFW_CONFIG_FILE=./config_files/ufw.config_file
 FAIL2BAN_CONFIG_FILE=./config_files/jail.local.config_file
 LOGWATCH_CONFIG_FILE=./config_files/logwatch.conf.config_file
+EMAIL_TEMPLATE=./config_files/email.template
 
 
 ##############
@@ -298,6 +297,8 @@ then
 
         if [ $? -ne 0 ]
         then
+            echo ""
+            echo ""
             echo " [ ERROR ] Couldn't create the log file : ${LOG_FILE} "
             echo ' /!\ Exiting the script /!\'
             echo ""
@@ -310,6 +311,7 @@ else
     # Display a warning and exit the script
     clear
     echo ""
+    echo ""
     echo " $(tput setaf 3) WARNING !!! $(tput sgr0) "
     echo ""
     echo ' It seems that this script has already been ran, '
@@ -317,9 +319,10 @@ else
     echo ""
     echo ""
     read -p " $(tput setaf 1)Press ENTER to continue, or CTRL+C to cancel...$(tput sgr0) "
-    
+
     clear
 
+    echo ""
     echo ""
     echo " $(tput setaf 3)Are you REALLY sure you want to continue ?$(tput sgr0)"
     echo ""
@@ -437,7 +440,7 @@ then
     groupadd ${NEW_USER_NAME}
     handle_command_error $? "Couldn't create the new group : ${NEW_USER_NAME}"
 
-    useradd --create-home -g sudo -g ${NEW_USER_NAME} -s /bin/bash ${NEW_USER_NAME}
+    useradd --create-home --groups sudo -g ${NEW_USER_NAME} -s /bin/bash ${NEW_USER_NAME}
     handle_command_error $? "Couldn't create the new user : ${NEW_USER_NAME}"
 
     echo "${NEW_USER_NAME}:${NEW_USER_PASSWORD}"| chpasswd
@@ -659,21 +662,59 @@ fi
 # Delete default user
 if [ "$REMOVE_DEFAULT_USER" == "true" ]
 then
-    userdel -r -f ${DEFAULT_USER_NAME}
+    killall -KILL -u ${DEFAULT_USER_NAME} && userdel -r -f ${DEFAULT_USER_NAME}
 fi
 
-# send a recap email to the admin email address
-echo "Subject: Install finished successfully" | /usr/lib/sendmail -v ${ROOT_EMAIL}
 
+# Final message
+echo ""
+echo " $( tput setaf 1 )This server is now SECURE$( tput sgr0 )"
+echo ""
+echo " REBOOTING "
+echo ""
+
+echo "" >> ${LOG_FILE}
+echo "This server is now SECURE" >> ${LOG_FILE}
+echo "" >> ${LOG_FILE}
+echo " REBOOTING... " >> ${LOG_FILE}
+echo "" >> ${LOG_FILE}
+
+
+# send a recap email to the root email address
+if [ ${ENABLE_MAIL_REPORTING} == "true" ]
+then
+#    echo "Subject: Install finished successfully" | /usr/lib/sendmail -v ${ROOT_EMAIL}
+
+    PUBLIC_IP="$( dig +short myip.opendns.com @resolver1.opendns.com )"
+    AUTHORIZED_KEYS_CONTENT="$( cat ${AUTHORIZED_KEYS_CONFIG_FILE} )"
+    LOG_FILE_CONTENT="$( cat ${LOG_FILE} )"
+
+# fill in the template email
+SCRIPT_NAME="$0" \
+ROOT_EMAIL="${ROOT_EMAIL}" \
+HOST_NAME="$( hostname )" \
+PUBLIC_IP="$( dig +short myip.opendns.com @resolver1.opendns.com )" \
+INSTALL_DATE="$( date )" \
+SSH_PORT="${SSH_PORT}" \
+TZ_TO_USE="${TZ_TO_USE}" \
+ROOT_PASSWORD="${ROOT_PASSWORD}" \
+NEW_USER_NAME="${NEW_USER_NAME}" \
+NEW_USER_PASSWORD="${NEW_USER_PASSWORD}" \
+ENABLE_IPV6="${ENABLE_IPV6}" \
+ENABLE_MAIL_REPORTING="${ENABLE_MAIL_REPORTING}" \
+DEST_EMAIL="${DEST_EMAIL}" \
+ENABLE_FAIL2BAN="${ENABLE_FAIL2BAN}" \
+ENABLE_LOGWATCH="${ENABLE_LOGWATCH}" \
+ENABLE_COCKPIT="${ENABLE_COCKPIT}" \
+AUTHORIZED_KEYS_CONTENT="${AUTHORIZED_KEYS_CONTENT}" \
+LOG_FILE_CONTENT="${LOG_FILE_CONTENT}" \
+envsubst < ${EMAIL_TEMPLATE} > ./email.recap
+
+# send the email
+sendmail -vt < ./email.recap
+fi
 
 # reboot
-echo ""
-echo "C'est fini !"
-echo "" >> ${LOG_FILE}
-echo "C'est fini !" >> ${LOG_FILE}
-echo "" >> ${LOG_FILE}
-echo ""
-
 reboot
 
 exit 0

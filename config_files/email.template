@@ -1,0 +1,71 @@
+To: ${ROOT_EMAIL}
+Subject: The server ${HOST_NAME} is now secure
+From: secure_server@${HOST_NAME}
+
+
+Your server located located @${PUBLIC_IP} has been SUCCESSFULLY
+secured by the ${SCRIPT_NAME} script, the ${INSTALL_DATE}.
+
+
+To access it via ssh :
+
+ssh ${NEW_USER_NAME}@${PUBLIC_IP} -p ${SSH_PORT}
+
+
+###############
+#
+#   RESUME
+#
+###############
+
+public IP = ${PUBLIC_IP}
+hostname = ${HOST_NAME}
+ssh port = ${SSH_PORT}
+
+timezone = ${TZ_TO_USE}
+
+----------------
+root password = ${ROOT_PASSWORD}
+----------------
+
+----------------
+new user created = ${NEW_USER_NAME}
+new user's password = ${NEW_USER_PASSWORD}
+----------------
+
+
+is IPV6 enabled ? ${ENABLE_IPV6}
+
+is email repporting enabled ? ${ENABLE_MAIL_REPORTING}
+    send emails to = ${DEST_EMAIL}
+
+is fail2ban enabled ? ${ENABLE_FAIL2BAN}
+
+is logwatch enabled ? ${ENABLE_LOGWATCH}
+
+is cockpit enabled ? ${ENABLE_COCKPIT}
+
+
+
+###############
+#
+#   AUTHORIZED KEYS
+#
+###############
+# ONLY this keys are allowed through SSH
+
+${AUTHORIZED_KEYS_CONTENT}
+
+
+
+
+
+
+###############
+#
+#   LOGS
+#
+###############
+
+
+${LOG_FILE_CONTENT}
