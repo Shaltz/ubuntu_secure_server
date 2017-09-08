@@ -1,5 +1,6 @@
 #!/bin/bash
 #
+
 ##########
 #
 #	SCRIPT TO SECURE A DEBIAN / UBUNTU SERVER
@@ -7,67 +8,110 @@
 ##########
 
 #####
+#
 #	SETTINGS
+#
 #####
 
-# The time zone to use.
-# To list all the timezones available :
-# timedatectl list-timezones
-TZ_TO_USE="Europe/Paris"
+#####
+## TIMEZONE
+#####
+## The time zone to use.
+## To list all the timezones available :
+## timedatectl list-timezones
+    TZ_TO_USE="Europe/Paris"
 
-# The new root password to use
-# DONT LEAVE THE DEFAULT ONE !!!
-CHANGE_ROOT_PASSWD=false
-ROOT_PASSWORD="changeme"
 
-# The ssh port to use
-# Its HIGHLY RECOMMENDED to change the default port
-SSH_PORT=22
+#####
+## SSH
+#####
+## The ssh port to use
+## Its HIGHLY RECOMMENDED to change the default port
+    SSH_PORT=22
 
-# Unless you really need ipv6 support,
-# you should consider disabling it
-ENABLE_IPV6=false
 
+#####
+## IPV6
+#####
+## Unless you really need ipv6 support,
+## you should consider disabling it
+    ENABLE_IPV6=false
+
+
+#####
+## EMAIL REPORTING
+#####
 # You should enable email reporting if you want to know
-# what happens on your server
-ENABLE_MAIL_REPORTING=false
+# what happens on this server
+    ENABLE_MAIL_REPORTING=false
 
-# Email address for reporting
-DEST_EMAIL="john.doe@gmail.com"
-
-# This email will ONLY be used at the end of this script
-# to send a summary of all the actions as well as a resume of the
-# ssh port, root password, user name & user password used
-RECAP_EMAIL_END_OF_PROCESS="root@gmail.com"
-
-# Extra layer of security that bans IPs 
-# if too many auth failed attempts
-ENABLE_FAIL2BAN=false
-
-# Rotate & send logs to an email address
-ENABLE_LOGWATCH=false
-
-# Monitoring utility
-# go to htp://cockpit-project.org
-# for more info
-ENABLE_COCKPIT=false
-
-# Should we create a new user ? [RECOMMENDED]
-CREATE_NEW_USER=false
-NEW_USER_NAME="john"
-NEW_USER_PASSWORD="password"
-
-# Should we delete the default user ? [RECOMMENDED]
-REMOVE_DEFAULT_USER=false
-# the system's default username, "ubuntu" for Ubuntu servers,
-# "pi" for Raspberry Pis ...
-# This user will be deleted at the end of the process
-# only if REMOVE_DEFAULT_USER=true
-DEFAULT_USER_NAME="ubuntu"
+        # Email address for reporting
+        DEST_EMAIL="john.doe@gmail.com"
 
 
+#####
+## FAIL2BAN
+#####
+## Extra layer of security that bans IPs
+## if too many auth attempts fail
+    ENABLE_FAIL2BAN=false
 
 
+#####
+## LOGWATCH
+#####
+## Rotate & send logs to an email address
+    ENABLE_LOGWATCH=false
+
+
+#####
+## COCKPIT
+#####
+## Monitoring utility
+## go to htp://cockpit-project.org
+## for more info
+    ENABLE_COCKPIT=false
+
+
+#####
+## ROOT USER
+#####
+# Change the root password ? [HIGHLY RECOMMENDED]
+    CHANGE_ROOT_PASSWD=false
+
+        # The new root password to use
+        # DONT LEAVE THE DEFAULT ONE !!!
+        ROOT_PASSWORD="changeme"
+
+        ## This email will ONLY be used at the end of this script
+        ## to send a summary of all the actions performed as well as
+        ## a resume of all the necessary information to connect & admin
+        ## this server
+        ROOT_EMAIL="root@gmail.com"
+
+
+#####
+## NEW USER
+#####
+## Should we create a new user ? [RECOMMENDED]
+    CREATE_NEW_USER=true
+
+        # The login and password for this new user
+        NEW_USER_NAME="pep"
+        NEW_USER_PASSWORD="password"
+
+
+#####
+## DEFAULT USER
+#####
+## Should we delete the default user ? [RECOMMENDED]
+    REMOVE_DEFAULT_USER=false
+
+        # the system's default username, "ubuntu" for Ubuntu servers,
+        # "pi" for Raspberry Pis ...
+        # This user will be deleted at the end of the process
+        # only if REMOVE_DEFAULT_USER=true
+        DEFAULT_USER_NAME="ubuntu"
 
 
 ##########################################
@@ -94,6 +138,7 @@ else
 	fi
 fi
 
+# clear the screen
 clear
 
 # General Warning
@@ -117,10 +162,13 @@ read -p " $(tput setaf 1)Press ENTER to continue, or CTRL+C to cancel...$(tput s
 #	VARIABLES
 #####
 
+TOP_PID=$$
+
 LOG_FILE=./secure_server_install.log
 BKP_DIR=./original_files/
 
 PUBLIC_IP=$( dig +short myip.opendns.com @resolver1.opendns.com )
+
 SSH_CONFIG_FILE=./config_files/sshd_config.config_file
 AUTHORIZED_KEYS_CONFIG_FILE=./config_files/authorized_keys.config_file
 SYSCTL_CONFIG_FILE=./config_files/sysctl.conf.config_file
@@ -128,36 +176,87 @@ UFW_CONFIG_FILE=./config_files/ufw.config_file
 FAIL2BAN_CONFIG_FILE=./config_files/jail.conf.config_file
 LOGWATCH_CONFIG_FILE=./config_files/logwatch.conf.config_file
 
-####
+
+##############
+#   FUNCTIONS
+##############
+
+
+function handle_command_error {
+# pass the exit code of the command we want to test
+# as the 1st argument and the string to display as the 2nd
+if [ $1 -ne 0 ]
+then
+    echo " [ ERROR ] $2 " >> ${LOG_FILE}
+    echo ' /!\ Exiting the script /!\' >> ${LOG_FILE}
+    echo "" >> ${LOG_FILE}
+
+    echo " [ ERROR ] $2 "
+    echo ' /!\ Exiting the script /!\'
+    echo ""
+
+    kill ${TOP_PID}
+fi
+}
+
+
+#####
 #	TESTS
 #####
 
-# does the new_user_name already exists
-grep -q "${NEW_USER_NAME}" /etc/passwd
-if [[ $? -eq 0 && "${CREATE_NEW_USER}" == true ]]
-then	
-	echo ""
-	echo "The user ${NEW_USER_NAME} does already exist."
-  	echo "Edit this script and choose another username"
-	echo ""
-exit 1
+if [[ "${CREATE_NEW_USER}" == "true" ]]
+then
+    echo "in test"
+    # does the new_user_name already exists
+    grep -q "${NEW_USER_NAME}" /etc/passwd
+    if [ $? -eq 0 ]
+    then
+        echo " [ ERROR ] The user ${NEW_USER_NAME} does already exist. " >> ${LOG_FILE}
+        echo ' /!\ Exiting the script /!\' >> ${LOG_FILE}
+        echo "" >> ${LOG_FILE}
+
+        echo " [ ERROR ] The user ${NEW_USER_NAME} does already exist. "
+        echo ' /!\ Exiting the script /!\'
+        echo ""
+
+        exit 1
+    fi
 fi
 
-# does the default_user_name exists
-grep -q "${DEFAULT_USER_NAME}" /etc/passwd
-if [[ $? -ne 0 && "${REMOVE_DEFAULT_USER}" == true ]]
+
+# check the the authorized_keys.config_file is NOT empty
+if [ -s ${AUTHORIZED_KEYS_CONFIG_FILE} ]
 then
-        echo ""
-        echo " The default user "${DEFAULT_USER_NAME}" doesn't exist on this system."
-        echo " Edit this script and provide the proper default user"
-	    echo " or set REMOVE_DEFAULT_USER to false"
-        echo ""
-exit 1
+    echo ""
+    echo " $(tput setaf 3)The authorized_keys.config_file is empty "
+    echo " You need to copy the public keys that you want"
+    echo " to use (to connect to this server) in it or"
+    echo " you will be LOCKED OUT from this server $(tput sgr0)"
+    echo ""
+    echo " $(tput setaf 1) Exiting the script $(tput sgr0)"
+    echo ""
+
+    echo "" >> ${LOG_FILE}
+    echo " The authorized_keys.config_file is empty " >> ${LOG_FILE}
+    echo " You need to copy the public keys that you want" >> ${LOG_FILE}
+    echo " to use (to connect to this server) in it." >> ${LOG_FILE}
+    echo "" >> ${LOG_FILE}
+    echo ' /!\ Exiting the script /!\' >> ${LOG_FILE}
+    echo "" >> ${LOG_FILE}
+
+    exit 1
+fi
+
+if [[ "${REMOVE_DEFAULT_USER}" == "true" ]]
+then
+    # does the default_user_name exists
+    grep -q "${DEFAULT_USER_NAME}" /etc/passwd
+    handle_command_error $? "The default user "${DEFAULT_USER_NAME}" doesn't exist on this system."
 fi
 
 
 # ssh config file
-if [[ ! -f ${SSH_CONFIG_FILE} && ! -f ${AUTHORIZED_KEYS_CONFIG_FILE} ]]
+if [[ ! -f ${SSH_CONFIG_FILE} ]]
 then
 	echo "SSH PAS LA !!"
 else
@@ -165,7 +264,7 @@ else
 fi
 
 
-# sysctl file 
+# sysctl config file (to enable/disable IPV6 in the kernel
 if [[ ! -f ${SYSCTL_CONFIG_FILE} ]]
 then
         echo "SYSCTL PAS LA !!"
@@ -174,7 +273,7 @@ else
 fi
 
 
-# fail2ban file
+# fail2ban config file
 if [[ ! -f ${FAIL2BAN_CONFIG_FILE} ]]
 then
         echo "FAIL2BAN PAS LA !!"
@@ -187,48 +286,57 @@ fi
 #	SCRIPT
 #####
 
+
+#######
 #
 ### PRE CONFIGURATION
 #
 
-# create bkp folder if it doesn't already exist
-if [ ! -d ${BKP_DIR} ]
-then
-    echo "Creating the backup folder for the original files that are going to be replaced during this process" >> ${LOG_FILE}
-    mkdir ${BKP_DIR}
-    echo "The Folder 'original_files/' has been created successfully" >> ${LOG_FILE}
-fi
-
 # create .log file
 if [ ! -f ${LOG_FILE} ]
 then
+    echo "Creating the log file "
     touch ${LOG_FILE}
+    handle_command_error $? "Couldn't create the log file : ${LOG_FILE}"
+
 else
+    # If the log file already exists
+    # Display a warning and exit the script
     clear
     echo ""
     echo " $(tput setaf 3) WARNING !!! $(tput sgr0) "
     echo ""
     echo " It seems that this script has already been ran, "
-    echo " meaning this server has already been secured... "
+    echo " meaning this server has already been secured. "
     echo ""
-    echo " Are you sure you want to run it once again ? "
+    echo " If the configuration doesn't work has expected, "
+    echo " reboot the server !"
     echo ""
-    read -p " $(tput setaf 1)Press ENTER to continue, or CTRL+C to cancel...$(tput sgr0) "
+    echo " $(tput setaf 1) Exiting the script $(tput sgr0) "
+    echo ""
+    echo ""
+    exit 1
+fi
+
+# create bkp folder if it doesn't already exist
+if [ ! -d ${BKP_DIR} ]
+then
+    echo "Creating the backup folder for the original files that are going to be replaced during this process" >> ${LOG_FILE}
+
+    # create the folder
+    mkdir ${BKP_DIR}
+    handle_command_error $? "Couldn't create ${BKP_DIR}"
+    echo "The Folder 'original_files/' has been created successfully" >> ${LOG_FILE}
 fi
 
 
-
-
-
+########
 #
 ### BASE SYSTEM
 #
-
-# configure timezone
-echo "Ready to update the time zone with :: ${TZ_TO_USE}" >> ${LOG_FILE}
+# configure the timezone
 timedatectl set-timezone ${TZ_TO_USE}
-echo "Time zone updated" >> ${LOG_FILE}
-
+# Start writing to the log file
 echo "" > ${LOG_FILE}
 echo "" >> ${LOG_FILE}
 echo " ################################## " >> ${LOG_FILE}
@@ -239,35 +347,39 @@ echo " Started the $(date) " >> ${LOG_FILE}
 echo "" >> ${LOG_FILE}
 echo " ----------------------------------- " >> ${LOG_FILE}
 echo "" >> ${LOG_FILE}
-
-
+echo "Time zone updated :: ${TZ_TO_USE}" >> ${LOG_FILE}
 # update the system
-
 apt update && sudo apt -y full-upgrade
 echo "System updated and fully upgraded" >> ${LOG_FILE}
 
+
+##########
+#
 ## AUTO-UPDATE
 #
 # Makes sure that the system stays up to date
-sudo apt install -y unattended-upgrades
-echo "unattended-upgrades packages installed" >> ${LOG_FILE}
+apt install -y unattended-upgrades
+handle_command_error $? "Couldn't update the system"
 
+echo "unattended-upgrades packages installed" >> ${LOG_FILE}
 # setup the system to stay up to date
 cat /etc/apt/apt.conf.d/10periodic | grep -i "APT::Periodic::Unattended-Upgrade" > /dev/null 2>&1
+handle_command_error $? "Couldn't update the file :: /etc/apt/apt.conf.d/10periodic"
 
-# Check if the config file hasn't been updated yet, 
-# if it hasn't been, update it
-if [ ! $? -eq 0 ]
-then
-    cp /etc/apt/apt.conf.d/10periodic ${BKP_DIR}
-	echo "APT::Periodic::Unattended-Upgrade \"1\";" >> /etc/apt/apt.conf.d/10periodic
-    echo "The unattended-upgrades package is installed and automatic security updates are activated" >> ${LOG_FILE}
-fi
+cp /etc/apt/apt.conf.d/10periodic ${BKP_DIR}
+echo "APT::Periodic::Unattended-Upgrade \"1\";" >> /etc/apt/apt.conf.d/10periodic
+echo "The unattended-upgrades package is installed and automatic security updates are activated" >> ${LOG_FILE}
 
+
+########
+#
+## IPV6
+#
 # disable ipv6
 if [ ${ENABLE_IPV6} == "false"  ]
 then
-    ipv6_config
+    ipv6_status="DEACTIVATED"
+    ipv6_config="
         #
         # Disable IPv6 support
         #
@@ -275,26 +387,38 @@ then
         net.ipv6.conf.default.disable_ipv6 = 1
         net.ipv6.conf.lo.disable_ipv6 = 1
         #"
-#	cat ${SYSCTL_CONFIG_FILE} > /etc/sysctl.conf
-    echo "IPV6 will be DEACTIVATED in the kernel" >> ${LOG_FILE}
 else
-    ipv6_config=""
-    echo "IPV6 will be ACTIVATED in the kernel" >> ${LOG_FILE}
+    ipv6_status="ACTIVATED"
+    ipv6_config="
+        #
+        # Disable IPv6 support
+        #
+        # Uncomment the following lines and
+        # and reboot this server to DISABLE IPV6
+        #
+        # net.ipv6.conf.all.disable_ipv6 = 1
+        # net.ipv6.conf.default.disable_ipv6 = 1
+        # net.ipv6.conf.lo.disable_ipv6 = 1
+        #"
 fi
 
 cp /etc/sysctl.conf ${BKP_DIR}
 ipv6_config=${ipv6_config} envsubst < ${SYSCTL_CONFIG_FILE} > /etc/sysctl.conf
+handle_command_error $? "Couldn't update the file : /etc/sysctl.conf"
+
+echo "IPV6 has been ${ipv6_status} in the kernel" >> ${LOG_FILE}
 
 
-
+#########
 #
 ### USERS
 #
-
 # Change root password
 if [ ${CHANGE_ROOT_PASSWD} == "true" ]
 then
     echo "root:${ROOT_PASSWORD}"|chpasswd
+    handle_command_error $? "Couldn't change the root password"
+
     echo "ROOT password updated" >> ${LOG_FILE}
 fi
 
@@ -303,15 +427,16 @@ if [ ${CREATE_NEW_USER} == "true" ]
 then
     useradd -m -g sudo -s /bin/bash ${NEW_USER_NAME}
     echo "${NEW_USER_NAME}:${NEW_USER_PASSWORD}"|chpasswd
+    handle_command_error $? "Couldn't create the new user : ${NEW_USER_NAME}"
+
     echo "The user '${NEW_USER_NAME}' has been created" >> ${LOG_FILE}
 fi
 
 
-
+########
 #
 ### SSH / FAIL2BAN
 #
-
 # Configure ssh
 cp /etc/ssh/sshd_config ${BKP_DIR}
 
@@ -323,8 +448,8 @@ else
     sshPasswordAuthentication="PasswordAuthentication no"
 fi
 
-#cat ${SSH_CONFIG_FILE} > /etc/ssh/sshd_config
 SSH_PORT=${SSH_PORT} NEW_USER_NAME=${NEW_USER_NAME} sshPasswordAuthentication=${sshPasswordAuthentication} envsubst < ${SSH_CONFIG_FILE} > /etc/ssh/sshd_config
+handle_command_error $? "Couldn't setup SSH"
 
 echo "The SSH service has been configured" >> ${LOG_FILE}
 
@@ -338,19 +463,27 @@ echo "The SSH service has been restarted" >> ${LOG_FILE}
 # Create a ssh key for the new user
 # sudo has to be kept as it's the command itself
 sudo -u ${NEW_USER_NAME} -- ssh-keygen -t rsa -N "" -f /home/${NEW_USER_NAME}/.ssh/id_rsa
+handle_command_error $? "Couldn't create the SSH key for the new user : ${NEW_USER_NAME}"
+
 echo "The ssh key for ${NEW_USER_NAME} has been created and it's stored in '/home/${NEW_USER_NAME}/.ssh/id_rsa'" >> ${LOG_FILE}
 
-# copy the authorized keys from config_files/authorized_keys.config_file to  ~/.ssh/authorized_keys
+# copy the authorized_keys from the config file to the new user ssh folder
 cp /home/${NEW_USER_NAME}/.ssh/authorized_keys ${BKP_DIR}
 cat ${AUTHORIZED_KEYS_CONFIG_FILE} >> /home/${NEW_USER_NAME}/.ssh/authorized_keys
+handle_command_error $? "Couldn't update the authorized_keys file for the new user : ${NEW_USER_NAME}"
+
 echo "The '/home/${NEW_USER_NAME}/.ssh/authorized_keys' has been updated" >> ${LOG_FILE}
 
 # Change the permission on the authorized_keys file
 chmod 400 /home/${NEW_USER_NAME}/.ssh/authorized_keys
+handle_command_error $? "Couldn't change the access rights for the authorized_keys file of the new user : ${NEW_USER_NAME}"
+
 echo "The '/home/${NEW_USER_NAME}/.ssh/authorized_keys' rights has been updated to 400" >> ${LOG_FILE}
 
 # change the owner of all files/folders present in the new user home folder
 chown ${NEW_USER_NAME}:${NEW_USER_NAME} /home/${NEW_USER_NAME} -R
+handle_command_error $? "Couldn't change the owner of the new user's home folder to : ${NEW_USER_NAME}"
+
 echo "The owner of all files/folders in /home/${NEW_USER_NAME} has been set to '${NEW_USER_NAME}'" >> ${LOG_FILE}
 
 
@@ -362,6 +495,8 @@ then
     echo "" >> ${LOG_FILE}
     echo "fail2ban is not installed, installing it..." >> ${LOG_FILE}
 	apt install -y fail2ban
+    handle_command_error $? "Couldn't install fail2ban"
+
 
 	if [ ${ENABLE_MAIL_REPORTING} == "true" ]
 	then
@@ -375,18 +510,16 @@ then
 	fi
 
     email_dest=${email_dest} email_sender=${email_sender} action=${action} envsubst < ${FAIL2BAN_CONFIG_FILE} > /etc/fail2ban/jail.local
-    echo "fail2ban installed and configured" >> ${LOG_FILE}
+    handle_command_error $? "Couldn't setup Fail2Ban"
 
-# replace variables in template file example
-# i=32 word=foo envsubst < template.txt
-	
+    echo "fail2ban is installed and configured" >> ${LOG_FILE}
 fi
 
 
+###########
 #
 ### FIREWALL (ufw)
 #
-
 # check if ufw is installed
 if [ ! -x $( command -v ufw ) ]
 then
@@ -396,6 +529,8 @@ then
     echo "" >> ${LOG_FILE}
     echo "ufw is not installed, installing it..." >> ${LOG_FILE}
     apt install -y ufw
+    handle_command_error $? "Couldn't install ufw"
+
     echo "ufw installed" >> ${LOG_FILE}
 fi
 
@@ -403,14 +538,15 @@ fi
 if [ ${ENABLE_IPV6} == "false"  ]
 then
     cp /etc/default/ufw ${BKP_DIR}
-#    cat ${UFW_CONFIG_FILE} > /etc/default/ufw
     ENABLE_IPV6_UFW="no" envsubst < ${UFW_CONFIG_FILE} > /etc/default/ufw
-    echo "IPV6 has been disabled in the ufw config file" >> ${LOG_FILE}
+    handle_command_error $? "Couldn't disable iv6 support in ufw"
 else
     cp /etc/default/ufw ${BKP_DIR}
     ENABLE_IPV6_UFW="yes" envsubst < ${UFW_CONFIG_FILE} > /etc/default/ufw
-    echo "IPV6 has been enabled in the ufw config file" >> ${LOG_FILE}
+    handle_command_error $? "Couldn't enable iv6 support in ufw"
 fi
+
+echo "IPV6 has been ${ipv6_status} in the ufw config file" >> ${LOG_FILE}
 
 
 # Allow SSH port
@@ -424,6 +560,7 @@ ufw logging medium
 # start the firewall
 echo "ufw :: STARTING the service" >> ${LOG_FILE}
 echo "y" | ufw enable
+handle_command_error $? "Couldn't enable ufw [FIREWALL IS NOT STARTED]"
 
 echo "" >> ${LOG_FILE}
 echo " ------------ " >> ${LOG_FILE}
@@ -438,6 +575,7 @@ echo " ------------ " >> ${LOG_FILE}
 echo "" >> ${LOG_FILE}
 
 
+#########
 #
 ### REPORTING / MONITORING
 #
@@ -447,6 +585,8 @@ if [ ${ENABLE_MAIL_REPORTING} == "true" ]
 then
     echo "sendmail :: installing" >> ${LOG_FILE}
     apt install sendmail
+    handle_command_error $? "Couldn't install sendmail"
+
     echo "sendmail :: installed" >> ${LOG_FILE}
     echo "" >> ${LOG_FILE}
     echo " ------------ " >> ${LOG_FILE}
@@ -463,8 +603,11 @@ fi
 # Install logwatch
 if [ ${ENABLE_LOGWATCH} == "true" ]
 then
-    sudo apt install logwatch
+    apt install logwatch
+    handle_command_error $? "Couldn't install logwatch"
+
     mkdir -p /var/cache/logwatch/
+    handle_command_error $? "Couldn't create logwatch log folder : /var/cache/logwatch/"
 
     if [[ ${ENABLE_MAIL_REPORTING} == "true" ]]
     then
@@ -473,7 +616,8 @@ then
         outputFormat="stdout"
     fi
 
-     outputFormat=${outputFormat} mailTo="${DEST_EMAIL}" mailFrom="logwatch@$(hostname)" envsubst < ${LOGWATCH_CONFIG_FILE} > /etc/logwatch/conf/logwatch.conf
+    outputFormat=${outputFormat} mailTo="${DEST_EMAIL}" mailFrom="logwatch@$(hostname)" envsubst < ${LOGWATCH_CONFIG_FILE} > /etc/logwatch/conf/logwatch.conf
+    handle_command_error $? "Couldn't setup logwatch"
 
 fi
 
@@ -482,9 +626,14 @@ fi
 if [ ${ENABLE_COCKPIT} == "true" ]
 then
     add-apt-repository ppa:cockpit-project/cockpit
+    handle_command_error $? "Couldn't add the repo for cockpit"
+
     apt update
     apt install -y cockpit
+    handle_command_error $? "Couldn't install cockpit"
+
     systemctl enable --now cockpit.socket
+    handle_command_error $? "Couldn't enable cockpit"
 fi
 
 
@@ -504,4 +653,6 @@ fi
 echo ""
 echo "C'est fini !"
 echo ""
+
+
 
