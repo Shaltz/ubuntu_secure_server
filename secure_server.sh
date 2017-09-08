@@ -653,19 +653,13 @@ fi
 #
 ### POST CONFIGURATION
 #
-
-# Delete default user
-if [ "$REMOVE_DEFAULT_USER" == "true" ]
-then
-    userdel -r -f ${DEFAULT_USER_NAME}
-fi
-
-
 # Final message
 echo ""
 echo " $( tput setaf 1 )This server is now SECURE$( tput sgr0 )"
 echo ""
 echo " REBOOTING "
+echo ""
+echo " Please wait... "
 echo ""
 
 echo "" >> ${LOG_FILE}
@@ -695,6 +689,7 @@ TZ_TO_USE="${TZ_TO_USE}" \
 ROOT_PASSWORD="${ROOT_PASSWORD}" \
 NEW_USER_NAME="${NEW_USER_NAME}" \
 NEW_USER_PASSWORD="${NEW_USER_PASSWORD}" \
+DEFAULT_USER_NAME="${DEFAULT_USER_NAME}" \
 ENABLE_IPV6="${ENABLE_IPV6}" \
 ENABLE_MAIL_REPORTING="${ENABLE_MAIL_REPORTING}" \
 DEST_EMAIL="${DEST_EMAIL}" \
@@ -707,6 +702,17 @@ envsubst < ${EMAIL_TEMPLATE} > ./email.recap
 
 # send the email
 sendmail -vt < ./email.recap
+fi
+
+
+# Delete default user
+if [ "$REMOVE_DEFAULT_USER" == "true" ]
+then
+    # copy the current folder to the new user's home folder
+    cp $(dirname $(realpath $0 )) /home/${NEW_USER_NAME}/
+
+    # remove the default user from the system
+    userdel -r -f ${DEFAULT_USER_NAME}
 fi
 
 # reboot

@@ -31,8 +31,9 @@ root password = ${ROOT_PASSWORD}
 ----------------
 new user created = ${NEW_USER_NAME}
 new user's password = ${NEW_USER_PASSWORD}
-----------------
 
+delete the default user ${DEFAULT_USER_NAME} ? ${REMOVE_DEFAULT_USER}
+----------------
 
 is IPV6 enabled ? ${ENABLE_IPV6}
 
