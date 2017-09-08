@@ -662,7 +662,7 @@ fi
 # Delete default user
 if [ "$REMOVE_DEFAULT_USER" == "true" ]
 then
-    killall -KILL -u ${DEFAULT_USER_NAME} && userdel -r -f ${DEFAULT_USER_NAME}
+    userdel -r -f ${DEFAULT_USER_NAME}
 fi
 
 
