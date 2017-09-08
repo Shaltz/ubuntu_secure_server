@@ -1,46 +1,48 @@
 #!/bin/bash
 #
+# v1.0
 
-##########
+#################################################
 #
 #	SCRIPT TO SECURE A DEBIAN / UBUNTU SERVER
+#   by pepinpin
 #
-##########
+#################################################
 
-#####
+###################
 #
 #	SETTINGS
 #
-#####
+###################
 
-#####
+###############
 ## TIMEZONE
-#####
+###############
 ## The time zone to use.
 ## To list all the timezones available :
 ## timedatectl list-timezones
     TZ_TO_USE="Europe/Paris"
 
 
-#####
+#########
 ## SSH
-#####
+#########
 ## The ssh port to use
 ## Its HIGHLY RECOMMENDED to change the default port
     SSH_PORT=22022
 
 
-#####
+##########
 ## IPV6
-#####
+##########
 ## Unless you really need ipv6 support,
 ## you should consider disabling it
     ENABLE_IPV6=false
 
 
-#####
+####################
 ## EMAIL REPORTING
-#####
+####################
 # You should enable email reporting if you want to know
 # what happens on this server
     ENABLE_MAIL_REPORTING=true
@@ -49,9 +51,9 @@
         DEST_EMAIL="john.doe@gmail.com"
 
 
-#####
+##############
 ## FAIL2BAN
-#####
+##############
 ## Extra layer of security that bans IPs
 ## if too many auth attempts fail
     ENABLE_FAIL2BAN=true
@@ -64,18 +66,18 @@
     ENABLE_LOGWATCH=true
 
 
-#####
+############
 ## COCKPIT
-#####
+############
 ## Monitoring utility
 ## go to htp://cockpit-project.org
 ## for more info
     ENABLE_COCKPIT=true
 
 
-#####
+##############
 ## ROOT USER
-#####
+##############
 # Change the root password ? [HIGHLY RECOMMENDED]
     CHANGE_ROOT_PASSWD=true
 
@@ -90,10 +92,10 @@
         ROOT_EMAIL="root@gmail.com"
 
 
-#####
+##############
 ## NEW USER
-#####
-## Should we create a new user ? [RECOMMENDED]
+##############
+## Should we create a new user ? [HIGHLY RECOMMENDED]
     CREATE_NEW_USER=true
 
         # The login and password for this new user
@@ -101,10 +103,10 @@
         NEW_USER_PASSWORD="changeme"
 
 
-#####
+#################
 ## DEFAULT USER
-#####
-## Should we delete the default user ? [RECOMMENDED]
+#################
+## Should we delete the default user ? [HIGHLY RECOMMENDED]
     REMOVE_DEFAULT_USER=false
 
         # the system's default username, "ubuntu" for Ubuntu servers,
@@ -112,6 +114,15 @@
         # This user will be deleted at the end of the process
         # only if REMOVE_DEFAULT_USER=true
         DEFAULT_USER_NAME="ubuntu"
+
+
+
+
+
+
+
+
+
 
 
 
@@ -176,9 +187,9 @@ EMAIL_TEMPLATE=./config_files/email.template
 
 
 
-##############
+################
 #   FUNCTIONS
-##############
+################
 
 function handle_command_error {
 # pass the exit code of the command we want to test
@@ -352,16 +363,6 @@ if [[ ! -f ${EMAIL_TEMPLATE} ]]
 then
     handle_command_error 999 "${EMAIL_TEMPLATE} is not present, make sure you have all the files/folders needed by this script"
 fi
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -735,11 +736,10 @@ echo "" >> ${LOG_FILE}
 # send a recap email to the root email address
 if [ ${ENABLE_MAIL_REPORTING} == "true" ]
 then
-#    echo "Subject: Install finished successfully" | /usr/lib/sendmail -v ${ROOT_EMAIL}
 
-    PUBLIC_IP="$( dig +short myip.opendns.com @resolver1.opendns.com )"
-    AUTHORIZED_KEYS_CONTENT="$( cat ${AUTHORIZED_KEYS_CONFIG_FILE} )"
-    LOG_FILE_CONTENT="$( cat ${LOG_FILE} )"
+PUBLIC_IP="$( dig +short myip.opendns.com @resolver1.opendns.com )"
+AUTHORIZED_KEYS_CONTENT="$( cat ${AUTHORIZED_KEYS_CONFIG_FILE} )"
+LOG_FILE_CONTENT="$( cat ${LOG_FILE} )"
 
 # fill in the template email
 SCRIPT_NAME="$0" \
