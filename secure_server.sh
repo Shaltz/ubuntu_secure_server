@@ -1,19 +1,23 @@
 #!/bin/bash
 #
-# v1.0
-
+#
+#
+#
 #################################################
 #
 #	SCRIPT TO SECURE A DEBIAN / UBUNTU SERVER
 #   by pepinpin
+#   v1.0
 #
 #################################################
+
 
 ###################
 #
 #	SETTINGS
 #
 ###################
+
 
 ###############
 ## TIMEZONE
@@ -107,7 +111,7 @@
 ## DEFAULT USER
 #################
 ## Should we delete the default user ? [HIGHLY RECOMMENDED]
-    REMOVE_DEFAULT_USER=false
+    REMOVE_DEFAULT_USER=true
 
         # the system's default username, "ubuntu" for Ubuntu servers,
         # "pi" for Raspberry Pis ...
@@ -124,12 +128,19 @@
 
 
 
+######################################################
+###	    DO NOT EDIT THE LINES BELLOW
+###         UNLESS YOU KNOW WHAT YOU ARE DOING
+######################################################
 
 
-##########################################
-###	DO NOT EDIT THE LINES BELLOW
-###   UNLESS YOU KNOW WHAT YOU ARE DOING
-##########################################
+#####################
+#
+#	  THE SCRIPT
+#
+#####################
+
+
 
 ##############
 #	WARNINGS
@@ -369,11 +380,11 @@ fi
 
 
 
-#####################
+##########################################
 #
-#	  THE SCRIPT
+#	  INSTALLATIONS & CONFIGURATIONS
 #
-#####################
+##########################################
 
 
 ##################
@@ -712,10 +723,15 @@ fi
 
 
 
-############################
+
+
+
+##############################
 #
-### POST CONFIGURATION
+#	  POST CONFIGURATION
 #
+##############################
+
 
 # Final message
 echo ""
