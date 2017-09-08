@@ -214,10 +214,6 @@ then
     grep -q "${NEW_USER_NAME}" /etc/passwd
     if [ $? -eq 0 ]
     then
-        echo " [ ERROR ] The user ${NEW_USER_NAME} does already exist. " >> ${LOG_FILE}
-        echo ' /!\ Exiting the script /!\' >> ${LOG_FILE}
-        echo "" >> ${LOG_FILE}
-
         echo " [ ERROR ] The user ${NEW_USER_NAME} does already exist. "
         echo ' /!\ Exiting the script /!\'
         echo ""
@@ -228,26 +224,16 @@ fi
 
 
 # check the the authorized_keys.config_file is NOT empty
-# todo: add a ! in the test when everything is fine to make sure the file IS NOT empty
-if [ -s ${AUTHORIZED_KEYS_CONFIG_FILE} ]
+if [ ! -s ${AUTHORIZED_KEYS_CONFIG_FILE} ]
 then
     echo ""
-    echo " $(tput setaf 3)The authorized_keys.config_file is empty "
+    echo " $(tput setaf 3)The ./config_files/authorized_keys.config_file is empty "
     echo " You need to copy the public keys that you want"
     echo " to use (to connect to this server) in it or"
     echo " you will be LOCKED OUT from this server $(tput sgr0)"
     echo ""
     echo " $(tput setaf 1) Exiting the script $(tput sgr0)"
     echo ""
-
-
-    echo "" >> ${LOG_FILE}
-    echo " The authorized_keys.config_file is empty " >> ${LOG_FILE}
-    echo " You need to copy the public keys that you want" >> ${LOG_FILE}
-    echo " to use (to connect to this server) in it." >> ${LOG_FILE}
-    echo "" >> ${LOG_FILE}
-    echo ' /!\ Exiting the script /!\' >> ${LOG_FILE}
-    echo "" >> ${LOG_FILE}
 
     exit 1
 fi
@@ -256,7 +242,14 @@ if [[ "${REMOVE_DEFAULT_USER}" == "true" ]]
 then
     # does the default_user_name exists
     grep -q "${DEFAULT_USER_NAME}" /etc/passwd
-    handle_command_error $? "The default user "${DEFAULT_USER_NAME}" doesn't exist on this system."
+    if [ $? -ne 0 ]
+    then
+        echo " [ ERROR ] The default user "${DEFAULT_USER_NAME}" doesn't exist on this system. "
+        echo ' /!\ Exiting the script /!\'
+        echo ""
+
+        exit 1
+    fi
 fi
 
 
@@ -302,7 +295,15 @@ if [ ! -f ${LOG_FILE} ]
 then
     echo "Creating the log file "
     touch ${LOG_FILE}
-    handle_command_error $? "Couldn't create the log file : ${LOG_FILE}"
+
+        if [ $? -ne 0 ]
+        then
+            echo " [ ERROR ] Couldn't create the log file : ${LOG_FILE} "
+            echo ' /!\ Exiting the script /!\'
+            echo ""
+
+            exit 1
+        fi
 
 else
     # If the log file already exists
@@ -311,16 +312,21 @@ else
     echo ""
     echo " $(tput setaf 3) WARNING !!! $(tput sgr0) "
     echo ""
-    echo " It seems that this script has already been ran, "
-    echo " meaning this server has already been secured. "
-    echo ""
-    echo " If the configuration doesn't work has expected, "
-    echo " reboot the server !"
-    echo ""
-    echo " $(tput setaf 1) Exiting the script $(tput sgr0) "
+    echo ' It seems that this script has already been ran, '
+    echo ' running it again may result in some undesired side effects !'
     echo ""
     echo ""
-    exit 1
+    read -p " $(tput setaf 1)Press ENTER to continue, or CTRL+C to cancel...$(tput sgr0) "
+    
+    clear
+
+    echo ""
+    echo " $(tput setaf 3)Are you REALLY sure you want to continue ?$(tput sgr0)"
+    echo ""
+    echo " Last warning... "
+    echo ""
+    read -p " $(tput setaf 1)Press ENTER to continue, or CTRL+C to cancel...$(tput sgr0) "
+
 fi
 
 # create bkp folder if it doesn't already exist
