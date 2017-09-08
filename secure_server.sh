@@ -27,7 +27,7 @@
 #####
 ## The ssh port to use
 ## Its HIGHLY RECOMMENDED to change the default port
-    SSH_PORT=22
+    SSH_PORT=22022
 
 
 #####
@@ -35,7 +35,7 @@
 #####
 ## Unless you really need ipv6 support,
 ## you should consider disabling it
-    ENABLE_IPV6=false
+    ENABLE_IPV6=true
 
 
 #####
@@ -43,7 +43,7 @@
 #####
 # You should enable email reporting if you want to know
 # what happens on this server
-    ENABLE_MAIL_REPORTING=false
+    ENABLE_MAIL_REPORTING=true
 
         # Email address for reporting
         DEST_EMAIL="john.doe@gmail.com"
@@ -54,14 +54,14 @@
 #####
 ## Extra layer of security that bans IPs
 ## if too many auth attempts fail
-    ENABLE_FAIL2BAN=false
+    ENABLE_FAIL2BAN=true
 
 
 #####
 ## LOGWATCH
 #####
 ## Rotate & send logs to an email address
-    ENABLE_LOGWATCH=false
+    ENABLE_LOGWATCH=true
 
 
 #####
@@ -70,14 +70,14 @@
 ## Monitoring utility
 ## go to htp://cockpit-project.org
 ## for more info
-    ENABLE_COCKPIT=false
+    ENABLE_COCKPIT=true
 
 
 #####
 ## ROOT USER
 #####
 # Change the root password ? [HIGHLY RECOMMENDED]
-    CHANGE_ROOT_PASSWD=false
+    CHANGE_ROOT_PASSWD=true
 
         # The new root password to use
         # DONT LEAVE THE DEFAULT ONE !!!
@@ -97,8 +97,8 @@
     CREATE_NEW_USER=true
 
         # The login and password for this new user
-        NEW_USER_NAME="pep"
-        NEW_USER_PASSWORD="password"
+        NEW_USER_NAME="john"
+        NEW_USER_PASSWORD="changeme"
 
 
 #####
@@ -424,7 +424,7 @@ fi
 # Create a new user
 if [ ${CREATE_NEW_USER} == "true" ]
 then
-    useradd -m -g sudo ${NEW_USER_NAME} -s /bin/bash ${NEW_USER_NAME}
+    useradd -m -G sudo,${NEW_USER_NAME} -s /bin/bash ${NEW_USER_NAME}
     echo "${NEW_USER_NAME}:${NEW_USER_PASSWORD}"|chpasswd
     handle_command_error $? "Couldn't create the new user : ${NEW_USER_NAME}"
 
