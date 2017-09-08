@@ -3,8 +3,10 @@ Subject: The server ${HOST_NAME}@${PUBLIC_IP} is now secure
 From: secure_server_script@${HOST_NAME}
 
 
-Your server located located @${PUBLIC_IP} has been SUCCESSFULLY
-secured by the ${SCRIPT_NAME} script, the ${INSTALL_DATE}.
+Your server located @ ${PUBLIC_IP} has been
+SUCCESSFULLY SECURED
+by :: ${SCRIPT_NAME},
+the :: ${INSTALL_DATE}.
 
 To access it via ssh :
 
@@ -48,7 +50,7 @@ is cockpit enabled ? ${ENABLE_COCKPIT}
 #   AUTHORIZED KEYS
 #
 ########################
-# ONLY this keys are allowed through SSH
+# ONLY these keys are allowed through SSH
 
 ${AUTHORIZED_KEYS_CONTENT}
 

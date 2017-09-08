@@ -785,7 +785,7 @@ fi
 if [ "$REMOVE_DEFAULT_USER" == "true" ]
 then
     # copy the current folder to the new user's home folder
-    cp $(dirname $(realpath $0 )) /home/${NEW_USER_NAME}/
+    cp -r $(dirname $(realpath $0 )) /home/${NEW_USER_NAME}/
 
     # remove the default user from the system
     userdel -r -f ${DEFAULT_USER_NAME}
