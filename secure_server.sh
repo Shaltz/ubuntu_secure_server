@@ -431,7 +431,7 @@ then
     groupadd ${NEW_USER_NAME}
     handle_command_error $? "Couldn't create the new group : ${NEW_USER_NAME}"
 
-    useradd --create-home -G sudo,${NEW_USER_NAME} -s /bin/bash ${NEW_USER_NAME}
+    useradd --create-home -g sudo -g ${NEW_USER_NAME} -s /bin/bash ${NEW_USER_NAME}
     handle_command_error $? "Couldn't create the new user : ${NEW_USER_NAME}"
 
     echo "${NEW_USER_NAME}:${NEW_USER_PASSWORD}"| chpasswd
