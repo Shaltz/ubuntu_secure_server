@@ -187,10 +187,14 @@ function handle_command_error {
 # as the 1st argument and the string to display as the 2nd
 if [ $1 -ne 0 ]
 then
+    echo "" >> ${LOG_FILE}
+    echo "" >> ${LOG_FILE}
     echo " [ ERROR ] $2 " >> ${LOG_FILE}
     echo ' /!\ Exiting the script /!\' >> ${LOG_FILE}
     echo "" >> ${LOG_FILE}
 
+    echo ""
+    echo ""
     echo " [ ERROR ] $2 "
     echo ' /!\ Exiting the script /!\'
     echo ""
@@ -425,7 +429,7 @@ then
     groupadd ${NEW_USER_NAME}
     handle_command_error $? "Couldn't create the new group : ${NEW_USER_NAME}"
 
-    useradd -m -g sudo,${NEW_USER_NAME} -s /bin/bash ${NEW_USER_NAME}
+    useradd -m -g sudo -g ${NEW_USER_NAME} -s /bin/bash ${NEW_USER_NAME}
     handle_command_error $? "Couldn't create the new user : ${NEW_USER_NAME}"
 
     echo "${NEW_USER_NAME}:${NEW_USER_PASSWORD}"|chpasswd
