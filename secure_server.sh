@@ -422,11 +422,11 @@ fi
 # Create a new user
 if [ ${CREATE_NEW_USER} == "true" ]
 then
-    useradd -m -G sudo,${NEW_USER_NAME} -s /bin/bash ${NEW_USER_NAME}
-    handle_command_error $? "Couldn't create the new user : ${NEW_USER_NAME}"
-
     groupadd ${NEW_USER_NAME}
     handle_command_error $? "Couldn't create the new group : ${NEW_USER_NAME}"
+
+    useradd -m -G sudo,${NEW_USER_NAME} -s /bin/bash ${NEW_USER_NAME}
+    handle_command_error $? "Couldn't create the new user : ${NEW_USER_NAME}"
 
     echo "${NEW_USER_NAME}:${NEW_USER_PASSWORD}"|chpasswd
     handle_command_error $? "Couldn't change the password of the new user : ${NEW_USER_NAME}"
