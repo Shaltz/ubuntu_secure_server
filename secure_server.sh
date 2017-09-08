@@ -114,14 +114,15 @@
         DEFAULT_USER_NAME="ubuntu"
 
 
+
 ##########################################
 ###	DO NOT EDIT THE LINES BELLOW
 ###   UNLESS YOU KNOW WHAT YOU ARE DOING
 ##########################################
 
-#####
+##############
 #	WARNINGS
-#####
+##############
 
 # make sure this script is ran as root
 if [ $EUID -ne 0 ]
@@ -153,13 +154,15 @@ echo ""
 echo ""
 read -p " $(tput setaf 1)Press ENTER to continue, or CTRL+C to cancel...$(tput sgr0) "
 
-####
+
+
+################
 #	VARIABLES
-#####
+################
 
 TOP_PID=$$
 
-LOG_FILE=./secure_server_install.log
+LOG_FILE=${0}.log
 BKP_DIR=./original_files/
 
 SSH_CONFIG_FILE=./config_files/sshd_config.config_file
@@ -168,13 +171,14 @@ SYSCTL_CONFIG_FILE=./config_files/sysctl.conf.config_file
 UFW_CONFIG_FILE=./config_files/ufw.config_file
 FAIL2BAN_CONFIG_FILE=./config_files/jail.local.config_file
 LOGWATCH_CONFIG_FILE=./config_files/logwatch.conf.config_file
+
 EMAIL_TEMPLATE=./config_files/email.template
+
 
 
 ##############
 #   FUNCTIONS
 ##############
-
 
 function handle_command_error {
 # pass the exit code of the command we want to test
@@ -198,91 +202,10 @@ fi
 }
 
 
-#####
-#	TESTS
-#####
 
-if [[ "${CREATE_NEW_USER}" == "true" ]]
-then
-    # does the new_user_name already exists
-    grep -q "${NEW_USER_NAME}" /etc/passwd
-    if [ $? -eq 0 ]
-    then
-        echo " [ ERROR ] The user ${NEW_USER_NAME} does already exist. "
-        echo ' /!\ Exiting the script /!\'
-        echo ""
-
-        exit 1
-    fi
-fi
-
-
-# check the the authorized_keys.config_file is NOT empty
-if [ ! -s ${AUTHORIZED_KEYS_CONFIG_FILE} ]
-then
-    echo ""
-    echo " $(tput setaf 3)The ./config_files/authorized_keys.config_file is empty "
-    echo " You need to copy the public keys that you want"
-    echo " to use (to connect to this server) in it or"
-    echo " you will be LOCKED OUT from this server $(tput sgr0)"
-    echo ""
-    echo " $(tput setaf 1) Exiting the script $(tput sgr0)"
-    echo ""
-
-    exit 1
-fi
-
-if [[ "${REMOVE_DEFAULT_USER}" == "true" ]]
-then
-    # does the default_user_name exists
-    grep -q "${DEFAULT_USER_NAME}" /etc/passwd
-    if [ $? -ne 0 ]
-    then
-        echo " [ ERROR ] The default user "${DEFAULT_USER_NAME}" doesn't exist on this system. "
-        echo ' /!\ Exiting the script /!\'
-        echo ""
-
-        exit 1
-    fi
-fi
-
-
-# ssh config file
-if [[ ! -f ${SSH_CONFIG_FILE} ]]
-then
-	echo "SSH PAS LA !!"
-else
-	echo "SSH LELA !"
-fi
-
-
-# sysctl config file (to enable/disable IPV6 in the kernel
-if [[ ! -f ${SYSCTL_CONFIG_FILE} ]]
-then
-        echo "SYSCTL PAS LA !!"
-else
-        echo "SYSCTL LELA !"
-fi
-
-
-# fail2ban config file
-if [[ ! -f ${FAIL2BAN_CONFIG_FILE} ]]
-then
-        echo "FAIL2BAN PAS LA !!"
-else
-        echo "FAIL2BAN LELA !"
-fi
-
-
-#####
-#	SCRIPT
-#####
-
-
-#######
-#
-### PRE CONFIGURATION
-#
+#####################
+#   LOGS & BACKUPS
+#####################
 
 # create .log file
 if [ ! -f ${LOG_FILE} ]
@@ -339,12 +262,126 @@ then
 fi
 
 
-########
+
+##############
+#	TESTS
+##############
+
+# check the the authorized_keys.config_file is NOT empty
+if [ ! -s ${AUTHORIZED_KEYS_CONFIG_FILE} ]
+then
+    echo ""
+    echo " $(tput setaf 3)The ./config_files/authorized_keys.config_file is empty "
+    echo " You need to copy the public keys that you want"
+    echo " to use (to connect to this server) in it or"
+    echo " you will be LOCKED OUT from this server $(tput sgr0)"
+    echo ""
+    echo " $(tput setaf 1) Exiting the script $(tput sgr0)"
+    echo ""
+
+    exit 1
+fi
+
+
+# check if the new user exists
+if [[ "${CREATE_NEW_USER}" == "true" ]]
+then
+    grep -q "${NEW_USER_NAME}" /etc/passwd
+    if [ $? -eq 0 ]
+    then
+        # if it exists, throw an error
+        echo " [ ERROR ] The user ${NEW_USER_NAME} does already exist. "
+        echo ' /!\ Exiting the script /!\'
+        echo ""
+
+        exit 1
+    fi
+fi
+
+
+# check if the default user exists
+if [[ "${REMOVE_DEFAULT_USER}" == "true" ]]
+then
+    grep -q "${DEFAULT_USER_NAME}" /etc/passwd
+    handle_command_error $? "The default user "${DEFAULT_USER_NAME}" doesn't exist on this system."
+fi
+
+
+
+# check to make sure the necessary config_files are present
+#
+# ssh config file
+if [[ -f ${SSH_CONFIG_FILE} ]]
+then
+    cp /etc/ssh/sshd_config ${BKP_DIR}
+else
+    handle_command_error 999 "${SSH_CONFIG_FILE} is not present, make sure you have all the files/folders needed by this script"
+fi
+
+
+# sysctl config file (to enable/disable IPV6 in the kernel
+if [[ ! -f ${SYSCTL_CONFIG_FILE} ]]
+then
+    handle_command_error 999 "${SYSCTL_CONFIG_FILE} is not present, make sure you have all the files/folders needed by this script"
+fi
+
+
+# fail2ban config file
+if [[ ! -f ${FAIL2BAN_CONFIG_FILE} ]]
+then
+    handle_command_error 999 "${FAIL2BAN_CONFIG_FILE} is not present, make sure you have all the files/folders needed by this script"
+fi
+
+
+# ufw config file
+if [[ ! -f ${UFW_CONFIG_FILE} ]]
+then
+    handle_command_error 999 "${UFW_CONFIG_FILE} is not present, make sure you have all the files/folders needed by this script"
+fi
+
+
+# logwatch config file
+if [[ ! -f ${LOGWATCH_CONFIG_FILE} ]]
+then
+    handle_command_error 999 "${LOGWATCH_CONFIG_FILE} is not present, make sure you have all the files/folders needed by this script"
+fi
+
+
+# email template
+if [[ ! -f ${EMAIL_TEMPLATE} ]]
+then
+    handle_command_error 999 "${EMAIL_TEMPLATE} is not present, make sure you have all the files/folders needed by this script"
+fi
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#####################
+#
+#	  THE SCRIPT
+#
+#####################
+
+
+##################
 #
 ### BASE SYSTEM
 #
 # configure the timezone
 timedatectl set-timezone ${TZ_TO_USE}
+
 # Start writing to the log file
 echo "" > ${LOG_FILE}
 echo "" >> ${LOG_FILE}
@@ -357,16 +394,18 @@ echo "" >> ${LOG_FILE}
 echo " ----------------------------------- " >> ${LOG_FILE}
 echo "" >> ${LOG_FILE}
 echo "Time zone updated :: ${TZ_TO_USE}" >> ${LOG_FILE}
-# update the system
 
+# update the system
 apt update && apt -y full-upgrade && apt install -y unattended-upgrades
 handle_command_error $? "Couldn't update the system"
+
 
 echo "System updated and fully upgraded" >> ${LOG_FILE}
 echo "Unattended-upgrades package installed" >> ${LOG_FILE}
 
 
-##########
+
+#################
 #
 ## AUTO-UPDATE
 #
@@ -378,7 +417,8 @@ handle_command_error $? "Couldn't update the file :: /etc/apt/apt.conf.d/10perio
 echo "The unattended-upgrades package is installed and automatic security updates are activated" >> ${LOG_FILE}
 
 
-########
+
+############
 #
 ## IPV6
 #
@@ -416,7 +456,8 @@ handle_command_error $? "Couldn't update the file : /etc/sysctl.conf"
 echo "IPV6 has been ${ipv6_status} in the kernel" >> ${LOG_FILE}
 
 
-#########
+
+################
 #
 ### USERS
 #
@@ -445,12 +486,15 @@ then
 fi
 
 
-########
+
+######################
 #
 ### SSH / FAIL2BAN
 #
-# Configure ssh
-cp /etc/ssh/sshd_config ${BKP_DIR}
+
+#
+## Configure ssh
+#
 
 # prepare the sshd_config file for cockpit
 if [ ${ENABLE_COCKPIT} == "true" ]
@@ -460,9 +504,13 @@ else
     sshPasswordAuthentication="PasswordAuthentication no"
 fi
 
-SSH_PORT=${SSH_PORT} NEW_USER_NAME=${NEW_USER_NAME} sshPasswordAuthentication=${sshPasswordAuthentication} envsubst < ${SSH_CONFIG_FILE} > /etc/ssh/sshd_config
-handle_command_error $? "Couldn't setup SSH"
+# Update the SSH config file
+SSH_PORT=${SSH_PORT} \
+NEW_USER_NAME=${NEW_USER_NAME} \
+sshPasswordAuthentication=${sshPasswordAuthentication} \
+envsubst < ${SSH_CONFIG_FILE} > /etc/ssh/sshd_config
 
+handle_command_error $? "Couldn't setup SSH"
 echo "The SSH service has been configured" >> ${LOG_FILE}
 
 # restart ssh
@@ -473,32 +521,37 @@ echo "The SSH service has been restarted" >> ${LOG_FILE}
 #
 ## Enable public key authentication
 #
+
 # Create a ssh key for the new user
 # sudo has to be kept as it's the command itself
 sudo -u ${NEW_USER_NAME} -- ssh-keygen -t rsa -N "" -f /home/${NEW_USER_NAME}/.ssh/id_rsa
 handle_command_error $? "Couldn't create the SSH key for the new user : ${NEW_USER_NAME}"
-
 echo "The ssh key for ${NEW_USER_NAME} has been created and it's stored in '/home/${NEW_USER_NAME}/.ssh/id_rsa'" >> ${LOG_FILE}
+
 
 # copy the authorized_keys from the config file to the new user ssh folder
 cp /home/${NEW_USER_NAME}/.ssh/authorized_keys ${BKP_DIR}
+
 cat ${AUTHORIZED_KEYS_CONFIG_FILE} >> /home/${NEW_USER_NAME}/.ssh/authorized_keys
 handle_command_error $? "Couldn't update the authorized_keys file for the new user : ${NEW_USER_NAME}"
-
 echo "The '/home/${NEW_USER_NAME}/.ssh/authorized_keys' has been updated" >> ${LOG_FILE}
+
 
 # Change the permission on the authorized_keys file
 chmod 400 /home/${NEW_USER_NAME}/.ssh/authorized_keys
 handle_command_error $? "Couldn't change the access rights for the authorized_keys file of the new user : ${NEW_USER_NAME}"
-
 echo "The '/home/${NEW_USER_NAME}/.ssh/authorized_keys' rights has been updated to 400" >> ${LOG_FILE}
+
 
 # change the owner of all files/folders present in the new user home folder
 chown ${NEW_USER_NAME}:${NEW_USER_NAME} /home/${NEW_USER_NAME} -R
 handle_command_error $? "Couldn't change the owner of the new user's home folder to : ${NEW_USER_NAME}"
-
 echo "The owner of all files/folders in /home/${NEW_USER_NAME} has been set to '${NEW_USER_NAME}'" >> ${LOG_FILE}
 
+
+#
+## Install & Configure fail2ban
+#
 
 # Install / Configure fail2ban
 if [ "${ENABLE_FAIL2BAN}" == true ]
@@ -529,14 +582,16 @@ then
 fi
 
 
-###########
+
+######################
 #
 ### FIREWALL (ufw)
 #
+
 # check if ufw is installed
 if [ ! -x $( command -v ufw ) ]
 then
-        # if not, install it
+    # if not, install it
     echo "" >> ${LOG_FILE}
     echo " ------------ " >> ${LOG_FILE}
     echo "" >> ${LOG_FILE}
@@ -546,6 +601,7 @@ then
 
     echo "ufw installed" >> ${LOG_FILE}
 fi
+
 
 # Disable ipv6
 if [ ${ENABLE_IPV6} == "false"  ]
@@ -575,6 +631,8 @@ echo "ufw :: STARTING the service" >> ${LOG_FILE}
 echo "y" | ufw enable
 handle_command_error $? "Couldn't enable ufw [FIREWALL IS NOT STARTED]"
 
+
+
 echo "" >> ${LOG_FILE}
 echo " ------------ " >> ${LOG_FILE}
 echo "" >> ${LOG_FILE}
@@ -588,7 +646,8 @@ echo " ------------ " >> ${LOG_FILE}
 echo "" >> ${LOG_FILE}
 
 
-#########
+
+############################
 #
 ### REPORTING / MONITORING
 #
@@ -612,6 +671,7 @@ then
     echo " ------------ " >> ${LOG_FILE}
     echo "" >> ${LOG_FILE}
 fi
+
 
 # Install logwatch
 if [ ${ENABLE_LOGWATCH} == "true" ]
@@ -650,9 +710,12 @@ then
 fi
 
 
+
+############################
 #
 ### POST CONFIGURATION
 #
+
 # Final message
 echo ""
 echo " $( tput setaf 1 )This server is now SECURE$( tput sgr0 )"
