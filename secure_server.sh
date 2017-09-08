@@ -425,7 +425,7 @@ then
     groupadd ${NEW_USER_NAME}
     handle_command_error $? "Couldn't create the new group : ${NEW_USER_NAME}"
 
-    useradd -m -G sudo,${NEW_USER_NAME} -s /bin/bash ${NEW_USER_NAME}
+    useradd -m -g sudo,${NEW_USER_NAME} -s /bin/bash ${NEW_USER_NAME}
     handle_command_error $? "Couldn't create the new user : ${NEW_USER_NAME}"
 
     echo "${NEW_USER_NAME}:${NEW_USER_PASSWORD}"|chpasswd
