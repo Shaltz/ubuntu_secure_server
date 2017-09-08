@@ -431,7 +431,7 @@ then
     groupadd ${NEW_USER_NAME}
     handle_command_error $? "Couldn't create the new group : ${NEW_USER_NAME}"
 
-    useradd --create-home --groups sudo,${NEW_USER_NAME} ${NEW_USER_NAME}
+    useradd --create-home --groups sudo -g ${NEW_USER_NAME} ${NEW_USER_NAME}
     handle_command_error $? "Couldn't create the new user : ${NEW_USER_NAME}"
 
     echo "${NEW_USER_NAME}:${NEW_USER_PASSWORD}"| chpasswd
@@ -466,6 +466,7 @@ sudo service sshd restart
 echo "The SSH service has been restarted" >> ${LOG_FILE}
 
 
+#
 ## Enable public key authentication
 #
 # Create a ssh key for the new user
@@ -559,7 +560,7 @@ echo "IPV6 has been ${ipv6_status} in the ufw config file" >> ${LOG_FILE}
 
 # Allow SSH port
 echo "ufw :: allowing ssh" >> ${LOG_FILE}
-ufw allow ssh
+ufw allow ${SSH_PORT}
 
 # Enable logging
 echo "ufw :: activating logging mechanism" >> ${LOG_FILE}
@@ -633,7 +634,7 @@ fi
 # Install cockpit (for monitoring)
 if [ ${ENABLE_COCKPIT} == "true" ]
 then
-    add-apt-repository ppa:cockpit-project/cockpit
+    add-apt-repository -y ppa:cockpit-project/cockpit
     handle_command_error $? "Couldn't add the repo for cockpit"
 
     apt update
@@ -662,6 +663,11 @@ echo "Subject: Install finished successfully" | /usr/lib/sendmail -v ${ROOT_EMAI
 # reboot
 echo ""
 echo "C'est fini !"
+echo "" >> ${LOG_FILE}
+echo "C'est fini !" >> ${LOG_FILE}
+echo "" >> ${LOG_FILE}
 echo ""
+
+reboot
 
 exit 0
