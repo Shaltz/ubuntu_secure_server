@@ -35,7 +35,7 @@
 #####
 ## Unless you really need ipv6 support,
 ## you should consider disabling it
-    ENABLE_IPV6=true
+    ENABLE_IPV6=false
 
 
 #####
@@ -228,6 +228,7 @@ fi
 
 
 # check the the authorized_keys.config_file is NOT empty
+# todo: add a ! in the test when everything is fine to make sure the file IS NOT empty
 if [ -s ${AUTHORIZED_KEYS_CONFIG_FILE} ]
 then
     echo ""
@@ -238,6 +239,7 @@ then
     echo ""
     echo " $(tput setaf 1) Exiting the script $(tput sgr0)"
     echo ""
+
 
     echo "" >> ${LOG_FILE}
     echo " The authorized_keys.config_file is empty " >> ${LOG_FILE}
@@ -377,30 +379,30 @@ echo "The unattended-upgrades package is installed and automatic security update
 ## IPV6
 #
 # disable ipv6
-if [ ${ENABLE_IPV6} == "false"  ]
+if [ "${ENABLE_IPV6}" == "false"  ]
 then
     ipv6_status="DEACTIVATED"
     ipv6_config="
-        #
-        # Disable IPv6 support
-        #
-        net.ipv6.conf.all.disable_ipv6 = 1
-        net.ipv6.conf.default.disable_ipv6 = 1
-        net.ipv6.conf.lo.disable_ipv6 = 1
-        #"
+#
+# Disable IPv6 support
+#
+net.ipv6.conf.all.disable_ipv6 = 1
+net.ipv6.conf.default.disable_ipv6 = 1
+net.ipv6.conf.lo.disable_ipv6 = 1
+#"
 else
     ipv6_status="ACTIVATED"
     ipv6_config="
-        #
-        # Disable IPv6 support
-        #
-        # Uncomment the following lines and
-        # and reboot this server to DISABLE IPV6
-        #
-        # net.ipv6.conf.all.disable_ipv6 = 1
-        # net.ipv6.conf.default.disable_ipv6 = 1
-        # net.ipv6.conf.lo.disable_ipv6 = 1
-        #"
+#
+# Disable IPv6 support
+#
+# Uncomment the following lines and
+# and reboot this server to DISABLE IPV6
+#
+# net.ipv6.conf.all.disable_ipv6 = 1
+# net.ipv6.conf.default.disable_ipv6 = 1
+# net.ipv6.conf.lo.disable_ipv6 = 1
+#"
 fi
 
 cp /etc/sysctl.conf ${BKP_DIR}
@@ -429,10 +431,10 @@ then
     groupadd ${NEW_USER_NAME}
     handle_command_error $? "Couldn't create the new group : ${NEW_USER_NAME}"
 
-    useradd -m -g sudo -g ${NEW_USER_NAME} -s /bin/bash ${NEW_USER_NAME}
+    useradd --create-home --groups sudo,${NEW_USER_NAME} ${NEW_USER_NAME}
     handle_command_error $? "Couldn't create the new user : ${NEW_USER_NAME}"
 
-    echo "${NEW_USER_NAME}:${NEW_USER_PASSWORD}"|chpasswd
+    echo "${NEW_USER_NAME}:${NEW_USER_PASSWORD}"| chpasswd
     handle_command_error $? "Couldn't change the password of the new user : ${NEW_USER_NAME}"
 
     echo "The user '${NEW_USER_NAME}' has been created" >> ${LOG_FILE}
@@ -590,7 +592,7 @@ echo "" >> ${LOG_FILE}
 if [ ${ENABLE_MAIL_REPORTING} == "true" ]
 then
     echo "sendmail :: installing" >> ${LOG_FILE}
-    apt install sendmail
+    apt install -y sendmail
     handle_command_error $? "Couldn't install sendmail"
 
     echo "sendmail :: installed" >> ${LOG_FILE}
@@ -609,7 +611,7 @@ fi
 # Install logwatch
 if [ ${ENABLE_LOGWATCH} == "true" ]
 then
-    apt install logwatch
+    apt install -y logwatch
     handle_command_error $? "Couldn't install logwatch"
 
     mkdir -p /var/cache/logwatch/
@@ -648,11 +650,13 @@ fi
 #
 
 # Delete default user
-
-
+if [ "$REMOVE_DEFAULT_USER" == "true" ]
+then
+    userdel -r -f ${DEFAULT_USER_NAME}
+fi
 
 # send a recap email to the admin email address
-
+echo "Subject: Install finished successfully" | /usr/lib/sendmail -v ${ROOT_EMAIL}
 
 
 # reboot
@@ -660,5 +664,4 @@ echo ""
 echo "C'est fini !"
 echo ""
 
-
-
+exit 0
