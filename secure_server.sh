@@ -173,7 +173,7 @@ SSH_CONFIG_FILE=./config_files/sshd_config.config_file
 AUTHORIZED_KEYS_CONFIG_FILE=./config_files/authorized_keys.config_file
 SYSCTL_CONFIG_FILE=./config_files/sysctl.conf.config_file
 UFW_CONFIG_FILE=./config_files/ufw.config_file
-FAIL2BAN_CONFIG_FILE=./config_files/jail.conf.config_file
+FAIL2BAN_CONFIG_FILE=./config_files/jail.local.config_file
 LOGWATCH_CONFIG_FILE=./config_files/logwatch.conf.config_file
 
 
@@ -206,7 +206,6 @@ fi
 
 if [[ "${CREATE_NEW_USER}" == "true" ]]
 then
-    echo "in test"
     # does the new_user_name already exists
     grep -q "${NEW_USER_NAME}" /etc/passwd
     if [ $? -eq 0 ]
@@ -363,8 +362,8 @@ handle_command_error $? "Couldn't update the system"
 
 echo "unattended-upgrades packages installed" >> ${LOG_FILE}
 # setup the system to stay up to date
-cat /etc/apt/apt.conf.d/10periodic | grep -i "APT::Periodic::Unattended-Upgrade" > /dev/null 2>&1
-handle_command_error $? "Couldn't update the file :: /etc/apt/apt.conf.d/10periodic"
+#cat /etc/apt/apt.conf.d/10periodic | grep -i "APT::Periodic::Unattended-Upgrade" > /dev/null 2>&1
+#handle_command_error $? "Couldn't update the file :: /etc/apt/apt.conf.d/10periodic"
 
 cp /etc/apt/apt.conf.d/10periodic ${BKP_DIR}
 echo "APT::Periodic::Unattended-Upgrade \"1\";" >> /etc/apt/apt.conf.d/10periodic

@@ -1,5 +1,6 @@
 secure_server_install.log
 original_files/
-.git
+.git/
+.idea/
 *.swp
 *.log
