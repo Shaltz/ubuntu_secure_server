@@ -348,20 +348,18 @@ echo " ----------------------------------- " >> ${LOG_FILE}
 echo "" >> ${LOG_FILE}
 echo "Time zone updated :: ${TZ_TO_USE}" >> ${LOG_FILE}
 # update the system
-apt update && sudo apt -y full-upgrade
+
+apt update && apt -y full-upgrade && apt install -y unattended-upgrades
+handle_command_error $? "Couldn't update the system"
+
 echo "System updated and fully upgraded" >> ${LOG_FILE}
+echo "Unattended-upgrades package installed" >> ${LOG_FILE}
 
 
 ##########
 #
 ## AUTO-UPDATE
 #
-# Makes sure that the system stays up to date
-apt install -y unattended-upgrades
-handle_command_error $? "Couldn't update the system"
-
-echo "unattended-upgrades packages installed" >> ${LOG_FILE}
-
 # setup the system to stay up to date
 cp /etc/apt/apt.conf.d/10periodic ${BKP_DIR}
 echo "APT::Periodic::Unattended-Upgrade \"1\";" >> /etc/apt/apt.conf.d/10periodic
