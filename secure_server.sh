@@ -44,17 +44,6 @@
     ENABLE_IPV6=false
 
 
-####################
-## EMAIL REPORTING
-####################
-# You should enable email reporting if you want to know
-# what happens on this server
-    ENABLE_MAIL_REPORTING=true
-
-        # Email address for reporting
-        DEST_EMAIL="john.doe@gmail.com"
-
-
 ##############
 ## FAIL2BAN
 ##############
@@ -76,7 +65,18 @@
 ## Monitoring utility
 ## go to htp://cockpit-project.org
 ## for more info
-    ENABLE_COCKPIT=true
+    ENABLE_COCKPIT=false
+    
+
+####################
+## EMAIL REPORTING
+####################
+# You should enable email reporting if you want to know
+# what happens on this server
+    ENABLE_MAIL_REPORTING=true
+
+        # Email address for reporting
+        DEST_EMAIL="report_email@domain.com"
 
 
 ##############
@@ -93,7 +93,7 @@
         ## to send a summary of all the actions performed as well as
         ## a resume of all the necessary information to connect & admin
         ## this server
-        ROOT_EMAIL="root@gmail.com"
+        ROOT_EMAIL="root_email@domain.com"
 
 
 ##############
