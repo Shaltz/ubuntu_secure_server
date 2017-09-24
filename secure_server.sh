@@ -28,6 +28,14 @@
     TZ_TO_USE="Europe/Paris"
 
 
+##############
+## HOSTNAME
+##############
+## Change the hostname
+## (leave it empty to keep the default hostname)
+    HOST=""
+
+
 ############
 ## DOMAIN
 ############
@@ -483,6 +491,25 @@ ipv6_config=${ipv6_config} envsubst < ${SYSCTL_CONFIG_FILE} > /etc/sysctl.conf
 handle_command_error $? "Couldn't update the file : /etc/sysctl.conf"
 
 echo "IPV6 has been ${ipv6_status} in the kernel" >> ${LOG_FILE}
+
+
+
+################
+#
+### HOSTNAME
+#
+# Setup the /etc/hostname file
+
+if [[ ! -z "${HOST// }" ]]
+then
+    echo "${HOST}" > /etc/hostname
+    handle_command_error $? "Couldn't update the file : /etc/hostname"
+
+    service hostname restart
+    handle_command_error $? "Couldn't restart the hostname service"
+
+    echo "The new hostname has properly been setup in the /etc/hostname file" >> ${LOG_FILE}
+fi
 
 
 
