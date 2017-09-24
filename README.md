@@ -6,6 +6,7 @@ Bash script to secure a server when it has just been installed.
 - Update and fully upgrade the system
 - Install and configure the Unattended-upgrades package (to ensure the security updates are automaticly installed)
 - Disable IPV6  [Optionnal]
+- Change the hostname [Optionnal]
 - Setup the /etc/hosts file properly
 - Change the root password  [Optionnal]
 - Create a new user [Optionnal]
