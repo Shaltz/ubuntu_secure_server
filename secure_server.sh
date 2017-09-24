@@ -195,6 +195,13 @@ read -p " $(tput setaf 1)Press ENTER to continue, or CTRL+C to cancel...$(tput s
 #	VARIABLES
 ################
 
+
+# check if dig is installed
+if [ ! -x $( command -v dig ) ]
+then
+    apt update && apt install -y dig
+fi
+
 PUBLIC_IP="$( dig +short myip.opendns.com @resolver1.opendns.com )"
 
 TOP_PID=$$
@@ -499,7 +506,6 @@ echo "IPV6 has been ${ipv6_status} in the kernel" >> ${LOG_FILE}
 ### HOSTNAME
 #
 # Setup the /etc/hostname file
-
 if [[ ! -z "${HOST// }" ]]
 then
     echo "${HOST}" > /etc/hostname
@@ -665,7 +671,7 @@ then
 	if [ ${ENABLE_MAIL_REPORTING} == "true" ]
 	then
         email_dest="destemail = ${DEST_EMAIL}"
-        email_sender="sender = root@$(hostname -f)"
+        email_sender="sender = fail2ban@$(hostname -f)"
         action="action = %(action_mwl)s"
 	else
         email_dest="# destemail = root@localhost"
