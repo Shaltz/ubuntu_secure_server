@@ -7,7 +7,7 @@
 #
 #   SCRIPT TO SECURE A DEBIAN / UBUNTU SERVER
 #   by pepinpin
-#   v1.0
+#   v1.1
 #
 #################################################
 
@@ -42,7 +42,7 @@
 #########
 ## The ssh port to use
 ## Its HIGHLY RECOMMENDED to change the default port
-    SSH_PORT=33033
+    SSH_PORT=22022
 
 
 ##########
@@ -111,7 +111,7 @@
 ## Should we create a new user ? [HIGHLY RECOMMENDED]
     CREATE_NEW_USER=true
 
-        # The login and password for this new user
+        # The username and password for this new user
         NEW_USER_NAME="john"
         NEW_USER_PASSWORD="changeme"
 
@@ -735,13 +735,6 @@ then
     handle_command_error $? "Couldn't install sendmail"
 
     echo "sendmail :: installed" >> ${LOG_FILE}
-    echo "" >> ${LOG_FILE}
-    echo " ------------ " >> ${LOG_FILE}
-    echo "" >> ${LOG_FILE}
-    echo " To help out sendmail working properly, " >> ${LOG_FILE}
-    echo " you can edit your '/etc/hosts' file and " >> ${LOG_FILE}
-    echo " make sure the following line is present at the top of your file : " >> ${LOG_FILE}
-    echo " '127.0.0.1   $(hostname) localhost' " >> ${LOG_FILE}
     echo "" >> ${LOG_FILE}
     echo " ------------ " >> ${LOG_FILE}
     echo "" >> ${LOG_FILE}
