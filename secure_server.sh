@@ -28,12 +28,21 @@
     TZ_TO_USE="Europe/Paris"
 
 
+############
+## DOMAIN
+############
+## The domain to use (if any)
+## (leave this empty if no domain is used)
+## ex : mydomain.org
+    DOMAIN=""
+
+
 #########
 ## SSH
 #########
 ## The ssh port to use
 ## Its HIGHLY RECOMMENDED to change the default port
-    SSH_PORT=22022
+    SSH_PORT=33033
 
 
 ##########
@@ -66,7 +75,7 @@
 ## go to htp://cockpit-project.org
 ## for more info
     ENABLE_COCKPIT=false
-    
+
 
 ####################
 ## EMAIL REPORTING
@@ -76,7 +85,7 @@
     ENABLE_MAIL_REPORTING=true
 
         # Email address for reporting
-        DEST_EMAIL="report_email@domain.com"
+        DEST_EMAIL="my-reports@gmail.com"
 
 
 ##############
@@ -93,7 +102,7 @@
         ## to send a summary of all the actions performed as well as
         ## a resume of all the necessary information to connect & admin
         ## this server
-        ROOT_EMAIL="root_email@domain.com"
+        ROOT_EMAIL="root@gmail.com"
 
 
 ##############
@@ -178,19 +187,22 @@ read -p " $(tput setaf 1)Press ENTER to continue, or CTRL+C to cancel...$(tput s
 #	VARIABLES
 ################
 
+PUBLIC_IP="$( dig +short myip.opendns.com @resolver1.opendns.com )"
+
 TOP_PID=$$
 
 LOG_FILE=${0}.log
 BKP_DIR=./original_files/
 
-SSH_CONFIG_FILE=./config_files/sshd_config.config_file
 AUTHORIZED_KEYS_CONFIG_FILE=./config_files/authorized_keys.config_file
+EMAIL_TEMPLATE=./config_files/email.template
+FAIL2BAN_CONFIG_FILE=./config_files/jail.local.config_file
+HOSTS_TEMPLATE_CONFIG_FILE=./config_files/hosts.config_file
+LOGWATCH_CONFIG_FILE=./config_files/logwatch.conf.config_file
+SSH_CONFIG_FILE=./config_files/sshd_config.config_file
 SYSCTL_CONFIG_FILE=./config_files/sysctl.conf.config_file
 UFW_CONFIG_FILE=./config_files/ufw.config_file
-FAIL2BAN_CONFIG_FILE=./config_files/jail.local.config_file
-LOGWATCH_CONFIG_FILE=./config_files/logwatch.conf.config_file
 
-EMAIL_TEMPLATE=./config_files/email.template
 
 
 
@@ -372,6 +384,12 @@ then
     handle_command_error 999 "${EMAIL_TEMPLATE} is not present, make sure you have all the files/folders needed by this script"
 fi
 
+# hosts template
+if [[ ! -f ${HOSTS_TEMPLATE_CONFIG_FILE} ]]
+then
+    handle_command_error 999 "${HOSTS_TEMPLATE_CONFIG_FILE} is not present, make sure you have all the files/folders needed by this script"
+fi
+
 
 
 
@@ -465,6 +483,48 @@ ipv6_config=${ipv6_config} envsubst < ${SYSCTL_CONFIG_FILE} > /etc/sysctl.conf
 handle_command_error $? "Couldn't update the file : /etc/sysctl.conf"
 
 echo "IPV6 has been ${ipv6_status} in the kernel" >> ${LOG_FILE}
+
+
+
+################
+#
+### HOSTS FILE
+#
+# Setup the /etc/hosts file
+
+_fqdn=""
+
+if [[ ! -z "${DOMAIN// }" ]]
+then
+    _fqdn="$(hostname).${DOMAIN} " ## a space is added here to keep the file tidy
+fi
+
+
+_ipv6_block=""
+
+if [ "${ENABLE_IPV6}" == "true"  ]
+then
+    _ipv6_block='
+# The following lines are desirable for IPv6 capable hosts
+::1     ip6-localhost ip6-loopback
+fe00::0 ip6-localnet
+ff00::0 ip6-mcastprefix
+ff02::1 ip6-allnodes
+ff02::2 ip6-allrouters
+'
+fi
+
+#backup the original file
+cp /etc/hosts ${BKP_DIR}
+
+public_ip="${PUBLIC_IP}" \
+FQDN="${_fqdn}" \
+hostname="$( hostname )" \
+ipv6_block="${_ipv6_block}" \
+envsubst < ${HOSTS_TEMPLATE_CONFIG_FILE} > /etc/hosts
+handle_command_error $? "Couldn't update the file : /etc/hosts"
+
+echo "The /etc/hosts file has been updated SUCCESSFULLY" >> ${LOG_FILE}
 
 
 
@@ -759,15 +819,15 @@ echo "" >> ${LOG_FILE}
 if [ ${ENABLE_MAIL_REPORTING} == "true" ]
 then
 
-PUBLIC_IP="$( dig +short myip.opendns.com @resolver1.opendns.com )"
 AUTHORIZED_KEYS_CONTENT="$( cat ${AUTHORIZED_KEYS_CONFIG_FILE} )"
 LOG_FILE_CONTENT="$( cat ${LOG_FILE} )"
+HOSTS_FILE_CONTENT="$( cat ${HOSTS_TEMPLATE_CONFIG_FILE} )"
 
 # fill in the template email
 SCRIPT_NAME="$0" \
 ROOT_EMAIL="${ROOT_EMAIL}" \
 HOST_NAME="$( hostname )" \
-PUBLIC_IP="$( dig +short myip.opendns.com @resolver1.opendns.com )" \
+PUBLIC_IP="${PUBLIC_IP}" \
 INSTALL_DATE="$( date )" \
 SSH_PORT="${SSH_PORT}" \
 TZ_TO_USE="${TZ_TO_USE}" \
@@ -782,6 +842,7 @@ DEST_EMAIL="${DEST_EMAIL}" \
 ENABLE_FAIL2BAN="${ENABLE_FAIL2BAN}" \
 ENABLE_LOGWATCH="${ENABLE_LOGWATCH}" \
 ENABLE_COCKPIT="${ENABLE_COCKPIT}" \
+HOSTS_FILE_CONTENT="${HOSTS_FILE_CONTENT}" \
 AUTHORIZED_KEYS_CONTENT="${AUTHORIZED_KEYS_CONTENT}" \
 LOG_FILE_CONTENT="${LOG_FILE_CONTENT}" \
 envsubst < ${EMAIL_TEMPLATE} > ./email.recap

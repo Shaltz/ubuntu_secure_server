@@ -45,6 +45,17 @@ is cockpit enabled ? ${ENABLE_COCKPIT}
 
 
 
+##################
+#
+#   HOSTS FILE
+#
+##################
+# This is how the hosts file has been setup
+
+${HOSTS_FILE_CONTENT}
+
+
+
 ########################
 #
 #   AUTHORIZED KEYS
@@ -63,3 +74,6 @@ ${AUTHORIZED_KEYS_CONTENT}
 #############
 
 ${LOG_FILE_CONTENT}
+
+
+.

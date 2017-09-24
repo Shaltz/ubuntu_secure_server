@@ -1,0 +1,6 @@
+127.0.0.1   ${FQDN}${hostname} localhost.localdomain localhost
+127.0.1.1   ${FQDN}${hostname}
+
+${public_ip}   ${FQDN}${hostname}
+
+${ipv6_block}
