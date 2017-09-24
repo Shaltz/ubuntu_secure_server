@@ -197,7 +197,7 @@ read -p " $(tput setaf 1)Press ENTER to continue, or CTRL+C to cancel...$(tput s
 
 
 # check if dig is installed
-if [ ! -x $( command -v dig ) ]
+if [ ! -x $( command -v dnsutils ) ]
 then
     apt update && apt install -y dig
 fi
