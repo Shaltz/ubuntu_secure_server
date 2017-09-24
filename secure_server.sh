@@ -438,7 +438,7 @@ echo "" >> ${LOG_FILE}
 echo "Time zone updated :: ${TZ_TO_USE}" >> ${LOG_FILE}
 
 # update the system
-apt update && apt -y full-upgrade && apt install -y unattended-upgrades
+apt update && apt -y full-upgrade && apt install -y unattended-upgrades && apt install -y ufw
 handle_command_error $? "Couldn't update the system"
 
 
@@ -692,21 +692,6 @@ fi
 #
 ### FIREWALL (ufw)
 #
-
-# check if ufw is installed
-if [ ! -x $( command -v ufw ) ]
-then
-    # if not, install it
-    echo "" >> ${LOG_FILE}
-    echo " ------------ " >> ${LOG_FILE}
-    echo "" >> ${LOG_FILE}
-    echo "ufw is not installed, installing it..." >> ${LOG_FILE}
-    apt install -y ufw
-    handle_command_error $? "Couldn't install ufw"
-
-    echo "ufw installed" >> ${LOG_FILE}
-fi
-
 
 #backup the original file
 cp /etc/default/ufw ${BKP_DIR}
