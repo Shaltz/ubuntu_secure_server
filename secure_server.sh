@@ -195,15 +195,6 @@ read -p " $(tput setaf 1)Press ENTER to continue, or CTRL+C to cancel...$(tput s
 #	VARIABLES
 ################
 
-
-# check if dig is installed
-if [ ! -x $( command -v dnsutils ) ]
-then
-    apt update && apt install -y dig
-fi
-
-PUBLIC_IP="$( dig +short myip.opendns.com @resolver1.opendns.com )"
-
 TOP_PID=$$
 
 LOG_FILE=${0}.log
@@ -438,8 +429,12 @@ echo "" >> ${LOG_FILE}
 echo "Time zone updated :: ${TZ_TO_USE}" >> ${LOG_FILE}
 
 # update the system
-apt update && apt -y full-upgrade && apt install -y unattended-upgrades && apt install -y ufw
+apt update && apt -y full-upgrade && apt install -y unattended-upgrades && apt install -y ufw && apt install -y dnsutils
 handle_command_error $? "Couldn't update the system"
+
+
+## set the public IP variable using dig
+PUBLIC_IP="$( dig +short myip.opendns.com @resolver1.opendns.com )"
 
 
 echo "System updated and fully upgraded" >> ${LOG_FILE}
