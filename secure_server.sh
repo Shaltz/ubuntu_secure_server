@@ -508,11 +508,9 @@ echo "IPV6 has been ${ipv6_status} in the kernel" >> ${LOG_FILE}
 # Setup the /etc/hostname file
 if [[ ! -z "${HOST// }" ]]
 then
+    hostname ${HOST}
     echo "${HOST}" > /etc/hostname
     handle_command_error $? "Couldn't update the file : /etc/hostname"
-
-    service hostname restart
-    handle_command_error $? "Couldn't restart the hostname service"
 
     echo "The new hostname has properly been setup in the /etc/hostname file" >> ${LOG_FILE}
 fi
