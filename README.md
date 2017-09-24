@@ -17,6 +17,7 @@ Bash script to secure a server when it has just been installed.
 - Install and configure logwatch for log rotation and log email reporting  [Optionnal]
 - Install and configure cockpit for easy monitoring / administration  [Optionnal]
 - Send a final email with a resume of all that happened  [Optionnal]
+- Reboots
 
 
 ### How to use this
