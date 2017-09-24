@@ -1,6 +1,6 @@
 To: ${ROOT_EMAIL}
 Subject: The server ${HOST_NAME}@${PUBLIC_IP} is now secure
-From: secure_server_script@${HOST_NAME}
+From: secure_server_script@${FQDN}
 
 
 Your server located @ ${PUBLIC_IP} has been

@@ -638,7 +638,7 @@ then
 	if [ ${ENABLE_MAIL_REPORTING} == "true" ]
 	then
         email_dest="destemail = ${DEST_EMAIL}"
-        email_sender="sender = root@$(hostname)"
+        email_sender="sender = root@$(hostname -f)"
         action="action = %(action_mwl)s"
 	else
         email_dest="# destemail = root@localhost"
@@ -760,7 +760,7 @@ then
     #backup the original file
     cp /etc/logwatch/conf/logwatch.conf ${BKP_DIR}
 
-    outputFormat=${outputFormat} mailTo="${DEST_EMAIL}" mailFrom="logwatch@$(hostname)" envsubst < ${LOGWATCH_CONFIG_FILE} > /etc/logwatch/conf/logwatch.conf
+    outputFormat=${outputFormat} mailTo="${DEST_EMAIL}" mailFrom="logwatch@$(hostname -f)" envsubst < ${LOGWATCH_CONFIG_FILE} > /etc/logwatch/conf/logwatch.conf
     handle_command_error $? "Couldn't setup logwatch"
 
 fi
@@ -820,6 +820,7 @@ HOSTS_FILE_CONTENT="$( cat ${HOSTS_TEMPLATE_CONFIG_FILE} )"
 SCRIPT_NAME="$0" \
 ROOT_EMAIL="${ROOT_EMAIL}" \
 HOST_NAME="$( hostname )" \
+FQDN="$( hostname -f )" \
 PUBLIC_IP="${PUBLIC_IP}" \
 INSTALL_DATE="$( date )" \
 SSH_PORT="${SSH_PORT}" \
