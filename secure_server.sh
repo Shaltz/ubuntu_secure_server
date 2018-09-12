@@ -832,6 +832,7 @@ SCRIPT_NAME="$0" \
 ROOT_EMAIL="${ROOT_EMAIL}" \
 HOST_NAME="$( hostname )" \
 FQDN="$( hostname -f )" \
+ipv6_block="$( _ipv6_block )" \
 PUBLIC_IP="${PUBLIC_IP}" \
 INSTALL_DATE="$( date )" \
 SSH_PORT="${SSH_PORT}" \
